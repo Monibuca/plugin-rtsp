@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -17,91 +18,100 @@ import (
 var (
 	VideoWidth  int
 	VideoHeight int
+	spropReg    *regexp.Regexp
+	configReg   *regexp.Regexp
 )
 
-type RtspClient struct {
-	socket   net.Conn
-	OutGoing chan []byte //out chanel
-	Signals  chan bool   //Signals quit
-	host     string      //host
-	port     string      //port
-	uri      string      //url
-	auth     bool        //aut
-	login    string
-	password string   //password
-	session  string   //rtsp session
-	responce string   //responce string
-	bauth    string   //string b auth
-	track    []string //rtsp track
-	cseq     int      //qury number
-	videow   int
-	videoh   int
+func init() {
+	spropReg, _ = regexp.Compile("sprop-parameter-sets=(.+);")
+	configReg, _ = regexp.Compile("config=(.+)(;|$)")
+	log.Println(spropReg)
 }
 
-//вернет пустой инициализированный обьект
-func RtspClientNew() *RtspClient {
+type RtspClient struct {
+	socket              net.Conn
+	OutGoing            chan []byte //out chanel
+	Signals             chan bool   //Signals quit
+	host                string      //host
+	port                string      //port
+	uri                 string      //url
+	auth                bool        //aut
+	login               string
+	password            string   //password
+	session             string   //rtsp session
+	responce            string   //responce string
+	bauth               string   //string b auth
+	track               []string //rtsp track
+	cseq                int      //qury number
+	videow              int
+	videoh              int
+	SPS                 []byte
+	PPS                 []byte
+	AudioSpecificConfig []byte
+}
+
+//RtspClientNew 返回空的初始化对象
+func RtspClientNew(bufferLength int) *RtspClient {
 	Obj := &RtspClient{
-		cseq:     1,                         //стартовый номер запроса
-		Signals:  make(chan bool, 1),        //буферизируемый канал на 1 сообщение
-		OutGoing: make(chan []byte, 100000), //буферизиуемый канал на 100000 байт
+		cseq:     1,                               //查询起始号码
+		Signals:  make(chan bool, 1),              //一个消息缓冲通道
+		OutGoing: make(chan []byte, bufferLength), //输出通道
 	}
 	return Obj
 }
 
-//основная функция работы с rtsp
 func (this *RtspClient) Client(rtsp_url string) (bool, string) {
-	//проверить и отпарсить url
+	//Check back url
 	if !this.ParseUrl(rtsp_url) {
-		return false, "Не верный url"
+		return false, "Incorrect url"
 	}
-	//установить подключение к камере
+	//Install connect to camera
 	if !this.Connect() {
-		return false, "Не возможно подключиться"
+		return false, "cannot connect"
 	}
-	//фаза 1 OPTIONS первый этап общения с камерой
-	//отправляем запрос OPTIONS
+	//Phase 1 options camera phase 1
+	//Send options request
 	if !this.Write("OPTIONS " + this.uri + " RTSP/1.0\r\nCSeq: " + strconv.Itoa(this.cseq) + "\r\n\r\n") {
-		return false, "Не возможно отправить сообщение OPTIONS"
+		return false, "Unable to send options message"
 	}
-	//читаем ответ на запрос OPTIONS
+	//Read the response to the options request
 	if status, message := this.Read(); !status {
-		return false, "Не возможно прочитать ответ OPTIONS соединение потеряно"
+		return false, "Unable to read options response connection lost"
 	} else if status && strings.Contains(message, "Digest") {
 		if !this.AuthDigest("OPTIONS", message) {
-			return false, "Требуеться авторизация Digest"
+			return false, "Summary of authorization required"
 		}
 	} else if status && strings.Contains(message, "Basic") {
 		if !this.AuthBasic("OPTIONS", message) {
-			return false, "Требуеться авторизация Basic"
+			return false, "Need certification Basic"
 		}
 	} else if !strings.Contains(message, "200") {
-		return false, "Ошибка OPTIONS not status code 200 OK " + message
+		return false, "error OPTIONS not status code 200 OK " + message
 	}
 
 	////////////PHASE 2 DESCRIBE
 	log.Println("DESCRIBE " + this.uri + " RTSP/1.0\r\nCSeq: " + strconv.Itoa(this.cseq) + this.bauth + "\r\n\r\n")
 	if !this.Write("DESCRIBE " + this.uri + " RTSP/1.0\r\nCSeq: " + strconv.Itoa(this.cseq) + this.bauth + "\r\n\r\n") {
-		return false, "Не возможно отправть запрос DESCRIBE"
+		return false, "Unable to send query DESCRIBE"
 	}
 	if status, message := this.Read(); !status {
-		return false, "Не возможно прочитать ответ DESCRIBE соединение потеряно ?"
+		return false, "Can't read response for decscribe connection loss?"
 	} else if status && strings.Contains(message, "Digest") {
 		if !this.AuthDigest("DESCRIBE", message) {
-			return false, "Требуеться авторизация Digest"
+			return false, "Summary of authorization required"
 		}
 	} else if status && strings.Contains(message, "Basic") {
 		if !this.AuthBasic("DESCRIBE", message) {
-			return false, "Требуеться авторизация Basic"
+			return false, "Basis of authorization required"
 		}
 	} else if !strings.Contains(message, "200") {
-		return false, "Ошибка DESCRIBE not status code 200 OK " + message
+		return false, "error DESCRIBE not status code 200 OK " + message
 	} else {
-		log.Println(message)
 		this.track = this.ParseMedia(message)
 
 	}
 	if len(this.track) == 0 {
-		return false, "Ошибка track not found "
+		return false, "error track not found "
 	}
 	//PHASE 3 SETUP
 	log.Println("SETUP " + this.uri + "/" + this.track[0] + " RTSP/1.0\r\nCSeq: " + strconv.Itoa(this.cseq) + "\r\nTransport: RTP/AVP/TCP;unicast;interleaved=0-1" + this.bauth + "\r\n\r\n")
@@ -109,7 +119,7 @@ func (this *RtspClient) Client(rtsp_url string) (bool, string) {
 		return false, ""
 	}
 	if status, message := this.Read(); !status {
-		return false, "Не возможно прочитать ответ SETUP соединение потеряно"
+		return false, "Unable to read response for missing setup connection."
 
 	} else if !strings.Contains(message, "200") {
 		if strings.Contains(message, "401") {
@@ -118,17 +128,17 @@ func (this *RtspClient) Client(rtsp_url string) (bool, string) {
 				return false, ""
 			}
 			if status, message := this.Read(); !status {
-				return false, "Не возможно прочитать ответ SETUP соединение потеряно"
+				return false, "Unable to read response for missing setup connection."
 
 			} else if !strings.Contains(message, "200") {
 
-				return false, "Ошибка SETUP not status code 200 OK " + message
+				return false, "error SETUP not status code 200 OK " + message
 
 			} else {
 				this.session = ParseSession(message)
 			}
 		} else {
-			return false, "Ошибка SETUP not status code 200 OK " + message
+			return false, "error SETUP not status code 200 OK " + message
 		}
 	} else {
 		log.Println(message)
@@ -141,7 +151,7 @@ func (this *RtspClient) Client(rtsp_url string) (bool, string) {
 			return false, ""
 		}
 		if status, message := this.Read(); !status {
-			return false, "Не возможно прочитать ответ SETUP Audio соединение потеряно"
+			return false, "Unable to read response for missing setup audio connection."
 
 		} else if !strings.Contains(message, "200") {
 			if strings.Contains(message, "401") {
@@ -150,18 +160,18 @@ func (this *RtspClient) Client(rtsp_url string) (bool, string) {
 					return false, ""
 				}
 				if status, message := this.Read(); !status {
-					return false, "Не возможно прочитать ответ SETUP Audio соединение потеряно"
+					return false, "Unable to read response for missing setup audio connection."
 
 				} else if !strings.Contains(message, "200") {
 
-					return false, "Ошибка SETUP not status code 200 OK " + message
+					return false, "error SETUP not status code 200 OK " + message
 
 				} else {
 					log.Println(message)
 					this.session = ParseSession(message)
 				}
 			} else {
-				return false, "Ошибка SETUP not status code 200 OK " + message
+				return false, "error SETUP not status code 200 OK " + message
 			}
 		} else {
 			log.Println(message)
@@ -175,7 +185,7 @@ func (this *RtspClient) Client(rtsp_url string) (bool, string) {
 		return false, ""
 	}
 	if status, message := this.Read(); !status {
-		return false, "Не возможно прочитать ответ PLAY соединение потеряно"
+		return false, "Unable to read play response lost connection"
 
 	} else if !strings.Contains(message, "200") {
 		//return false, "Ошибка PLAY not status code 200 OK " + message
@@ -185,11 +195,11 @@ func (this *RtspClient) Client(rtsp_url string) (bool, string) {
 				return false, ""
 			}
 			if status, message := this.Read(); !status {
-				return false, "Не возможно прочитать ответ PLAY соединение потеряно"
+				return false, "Unable to read play response lost connection"
 
 			} else if !strings.Contains(message, "200") {
 
-				return false, "Ошибка PLAY not status code 200 OK " + message
+				return false, "error PLAY not status code 200 OK " + message
 
 			} else {
 				//this.session = ParseSession(message)
@@ -198,7 +208,7 @@ func (this *RtspClient) Client(rtsp_url string) (bool, string) {
 				return true, "ok"
 			}
 		} else {
-			return false, "Ошибка PLAY not status code 200 OK " + message
+			return false, "error PLAY not status code 200 OK " + message
 		}
 	} else {
 		log.Print(message)
@@ -312,7 +322,7 @@ func (this *RtspClient) RtspRtpLoop() {
 
 //unsafe!
 func (this *RtspClient) SendBufer(bufer []byte) {
-	//тут надо отправлять все пакеты из буфера send all?
+	//Here you need to send all the packages from the send all buffer?
 	payload := make([]byte, 4096)
 	for {
 		if len(bufer) < 4 {
@@ -449,12 +459,12 @@ func ParseMedia(header string) []string {
 	mparsed := strings.Split(header, "\r\n")
 	paste := ""
 
-	if true {
-		log.Println("headers", header)
-	}
+	// if true {
+	// 	log.Println("headers", header)
+	// }
 
 	for _, element := range mparsed {
-		if strings.Contains(element, "a=control:") && !strings.Contains(element, "*") && strings.Contains(element, "tra") {
+		if strings.Contains(element, "a=control:") && !strings.Contains(element, "*") {
 			paste = element[10:]
 			if strings.Contains(element, "/") {
 				striped := strings.Split(element, "/")
@@ -479,6 +489,10 @@ func ParseMedia(header string) []string {
 				VideoHeight = dims[1]
 			}
 		}
+		if strings.Contains(element, "sprop-parameter-sets") {
+			group := spropReg.FindAllStringSubmatch(element, -1)
+			log.Println(group[1])
+		}
 	}
 	return letters
 }
@@ -488,10 +502,11 @@ func GetMD5Hash(text string) string {
 }
 func (this *RtspClient) ParseMedia(header string) []string {
 	letters := []string{}
+	log.Println(header)
 	mparsed := strings.Split(header, "\r\n")
 	paste := ""
 	for _, element := range mparsed {
-		if strings.Contains(element, "a=control:") && !strings.Contains(element, "*") && strings.Contains(element, "tra") {
+		if strings.Contains(element, "a=control:") && !strings.Contains(element, "*") {
 			paste = element[10:]
 			if strings.Contains(element, "/") {
 				striped := strings.Split(element, "/")
@@ -515,6 +530,14 @@ func (this *RtspClient) ParseMedia(header string) []string {
 				this.videow = dims[0]
 				this.videoh = dims[1]
 			}
+		}
+		group := spropReg.FindAllStringSubmatch(element, -1)
+		if len(group) > 0 {
+			group := strings.Split(group[0][1], ",")
+			this.SPS, _ = b64.StdEncoding.DecodeString(group[0])
+			this.PPS, _ = b64.StdEncoding.DecodeString(group[1])
+		} else if group = configReg.FindAllStringSubmatch(element, -1); len(group) > 0 {
+			this.AudioSpecificConfig, _ = hex.DecodeString(group[0][1])
 		}
 	}
 	return letters
