@@ -153,19 +153,33 @@ func (rtsp *RTSP) run() {
 
 				} else if data[1] == 2 {
 					// audio
-					cc := data[4] & 0xF
-					rtphdr := 12 + cc*4
-					payload := data[4+rtphdr:]
 					if !aacsent {
 						av := NewAVPacket(FLV_TAG_TYPE_AUDIO)
 						av.Payload = append([]byte{0xAF, 0x00}, rtsp.AudioSpecificConfig...)
 						rtsp.PushAudio(av)
 						aacsent = true
 					}
-					av := NewAVPacket(FLV_TAG_TYPE_AUDIO)
-					addHead := []byte{0xAF, 0x01}
-					av.Payload = append(addHead, payload...)
-					rtsp.PushAudio(av)
+					cc := data[4] & 0xF
+					rtphdr := 12 + cc*4
+					payload := data[4+rtphdr:]
+					auHeaderLen := (int16(payload[0]) << 8) + int16(payload[1])
+					auHeaderLen = auHeaderLen >> 3
+					auHeaderCount := int(auHeaderLen / 2)
+					var auLenArray []int
+					for iIndex := 0; iIndex < int(auHeaderCount); iIndex++ {
+						auHeaderInfo := (int16(payload[2+2*iIndex]) << 8) + int16(payload[2+2*iIndex+1])
+						auLen := auHeaderInfo >> 3
+						auLenArray = append(auLenArray, int(auLen))
+					}
+					startOffset := 2 + 2*auHeaderCount
+					for _, auLen := range auLenArray {
+						endOffset := startOffset + auLen
+						av := NewAVPacket(FLV_TAG_TYPE_AUDIO)
+						addHead := []byte{0xAF, 0x01}
+						av.Payload = append(addHead, payload[startOffset:endOffset]...)
+						rtsp.PushAudio(av)
+						startOffset = startOffset + auLen
+					}
 				}
 			}
 		}
