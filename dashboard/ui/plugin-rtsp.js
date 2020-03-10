@@ -726,14 +726,14 @@ function normalizeComponent (
   }
 }
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"6bea2730-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./index.vue?vue&type=template&id=729d5d1a&shadow
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"29918b3a-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./index.vue?vue&type=template&id=dfbf11f4&shadow
 var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('Button',{attrs:{"type":"success"},on:{"click":_vm.addPull}},[_vm._v("拉流转发")]),(_vm.Rooms==null)?_c('Spin',{attrs:{"fix":""}},[_c('Icon',{staticClass:"demo-spin-icon-load",attrs:{"type":"ios-loading","size":"18"}}),_c('div',[_vm._v("Loading")])],1):(_vm.Rooms.length==0)?_c('div',{staticClass:"empty"},[_c('Icon',{attrs:{"type":"md-wine","size":"50"}}),_vm._v("没有任何房间 ")],1):_c('div',{staticClass:"layout"},_vm._l((_vm.Rooms),function(item){return _c('Card',{key:item.RoomInfo.StreamPath,staticClass:"room"},[_c('p',{attrs:{"slot":"title"},slot:"title"},[_vm._v(_vm._s(item.RoomInfo.StreamPath))]),_c('StartTime',{attrs:{"slot":"extra","value":item.RoomInfo.StartTime},slot:"extra"}),_c('div',{staticClass:"hls-info"},[_c('Progress',{attrs:{"stroke-width":20,"percent":Math.ceil(item.BufferRate),"text-inside":""}}),_c('div',[_vm._v("📜"+_vm._s(item.SyncCount))])],1),_c('Button',{on:{"click":function($event){return _vm.showHeader(item)}}},[_c('Icon',{attrs:{"type":"ios-code-working"}})],1)],1)}),1)],1)}
 var staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./index.vue?vue&type=template&id=729d5d1a&shadow
+// CONCATENATED MODULE: ./index.vue?vue&type=template&id=dfbf11f4&shadow
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"6bea2730-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./components/StartTime.vue?vue&type=template&id=88297556&scoped=true&
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"29918b3a-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./components/StartTime.vue?vue&type=template&id=88297556&scoped=true&
 var StartTimevue_type_template_id_88297556_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('Poptip',{attrs:{"trigger":"hover","content":'⌚️'+ new Date(_vm.value).toLocaleString()}},[_c('Time',{attrs:{"time":new Date(_vm.value)}})],1)}
 var StartTimevue_type_template_id_88297556_scoped_true_staticRenderFns = []
 
@@ -845,7 +845,7 @@ let listES = null;
         addPull() {
             this.$Modal.confirm({
                 title: "拉流转发",
-                onOk() {
+                onOk:()=> {
                     window.ajax
                         .getJSON("/rtsp/pull", {
                             target: this.remoteAddr,

@@ -62,7 +62,7 @@ export default {
         addPull() {
             this.$Modal.confirm({
                 title: "拉流转发",
-                onOk() {
+                onOk:()=> {
                     window.ajax
                         .getJSON("/rtsp/pull", {
                             target: this.remoteAddr,
