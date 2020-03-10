@@ -25,7 +25,6 @@ var (
 func init() {
 	spropReg, _ = regexp.Compile("sprop-parameter-sets=(.+);")
 	configReg, _ = regexp.Compile("config=(.+)(;|$)")
-	log.Println(spropReg)
 }
 
 type RtspClient struct {
@@ -47,6 +46,7 @@ type RtspClient struct {
 	videoh              int
 	SPS                 []byte
 	PPS                 []byte
+	Header              string
 	AudioSpecificConfig []byte
 }
 
@@ -107,6 +107,7 @@ func (this *RtspClient) Client(rtsp_url string) (bool, string) {
 	} else if !strings.Contains(message, "200") {
 		return false, "error DESCRIBE not status code 200 OK " + message
 	} else {
+		this.Header = message
 		this.track = this.ParseMedia(message)
 
 	}

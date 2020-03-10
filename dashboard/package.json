@@ -1,0 +1,15 @@
+{
+  "name": "dashboard",
+  "version": "1.0.0",
+  "description": "dashboard of rtsp plugin for monibuca",
+  "main": "index.js",
+  "scripts": {
+    "build": "vue-cli-service build --dest ui --target wc --name plugin-rtsp index.vue"
+  },
+  "author": "dexter",
+  "license": "ISC",
+  "devDependencies": {
+    "@vue/cli-service": "^4.2.3",
+    "vue-template-compiler": "^2.6.11"
+  }
+}

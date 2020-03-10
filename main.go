@@ -2,14 +2,19 @@ package rtspplugin
 
 import (
 	"bytes"
+	"fmt"
 	"log"
+	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	. "github.com/Monibuca/engine"
 	. "github.com/Monibuca/engine/avformat"
 	"github.com/Monibuca/engine/util"
 )
 
+var collection = sync.Map{}
 var config = struct {
 	BufferLength int
 	AutoPull     bool
@@ -19,17 +24,46 @@ var config = struct {
 func init() {
 	InstallPlugin(&PluginConfig{
 		Name:    "RTSP",
+		Type:    PLUGIN_PUBLISHER | PLUGIN_HOOK,
 		Version: "1.0.0",
 		Config:  &config,
-		Run: func() {
-			if config.AutoPull {
-				OnSubscribeHooks.AddHook(func(s *OutputStream) {
-					if s.Publisher == nil {
-						new(RTSP).Publish(s.StreamPath, strings.Replace(config.RemoteAddr, "${streamPath}", s.StreamPath, -1))
-					}
-				})
+		UI:      util.CurrentDir("dashboard", "ui", "plugin-rtsp.min.js"),
+		Run:     runPlugin,
+	})
+}
+func runPlugin() {
+	if config.AutoPull {
+		OnSubscribeHooks.AddHook(func(s *OutputStream) {
+			if s.Publisher == nil {
+				new(RTSP).Publish(s.StreamPath, strings.Replace(config.RemoteAddr, "${streamPath}", s.StreamPath, -1))
 			}
-		},
+		})
+	}
+	http.HandleFunc("/rtsp/list", func(w http.ResponseWriter, r *http.Request) {
+		sse := util.NewSSE(w, r.Context())
+		var err error
+		for tick := time.NewTicker(time.Second); err == nil; <-tick.C {
+			var info []*RTSPInfo
+			collection.Range(func(key, value interface{}) bool {
+				rtsp := value.(*RTSP)
+				pinfo := &rtsp.RTSPInfo
+				pinfo.BufferRate = len(rtsp.OutGoing) * 100 / config.BufferLength
+				info = append(info, pinfo)
+				return true
+			})
+			err = sse.WriteJSON(info)
+		}
+	})
+	http.HandleFunc("/rtsp/pull", func(w http.ResponseWriter, r *http.Request) {
+		targetURL := r.URL.Query().Get("target")
+		streamPath := r.URL.Query().Get("streamPath")
+		var err error
+		if err == nil {
+			new(RTSP).Publish(streamPath, targetURL)
+			w.Write([]byte(`{"code":0}`))
+		} else {
+			w.Write([]byte(fmt.Sprintf(`{"code":1,"msg":"%s"}`, err.Error())))
+		}
 	})
 }
 
@@ -39,8 +73,10 @@ type RTSP struct {
 	RTSPInfo
 }
 type RTSPInfo struct {
-	SyncCount int64
-	RoomInfo  *RoomInfo
+	SyncCount  int64
+	Header     *string
+	BufferRate int
+	RoomInfo   *RoomInfo
 }
 
 func (rtsp *RTSP) run() {
@@ -189,10 +225,12 @@ func (rtsp *RTSP) Publish(streamPath string, rtspUrl string) (result bool) {
 	if result = rtsp.InputStream.Publish(streamPath, rtsp); result {
 		rtsp.RTSPInfo.RoomInfo = &rtsp.Room.RoomInfo
 		rtsp.RtspClient = RtspClientNew(config.BufferLength)
+		rtsp.RTSPInfo.Header = &rtsp.RtspClient.Header
 		if status, message := rtsp.RtspClient.Client(rtspUrl); !status {
 			log.Println(message)
 			return false
 		}
+		collection.Store(streamPath, rtsp)
 		go rtsp.run()
 	}
 	return
