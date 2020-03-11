@@ -23,8 +23,8 @@ var (
 )
 
 func init() {
-	spropReg, _ = regexp.Compile("sprop-parameter-sets=(.+);")
-	configReg, _ = regexp.Compile("config=(.+)(;|$)")
+	spropReg, _ = regexp.Compile("sprop-parameter-sets=([^;]+)")
+	configReg, _ = regexp.Compile("config=([^;]+)")
 }
 
 type RtspClient struct {
