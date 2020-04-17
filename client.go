@@ -375,7 +375,7 @@ func (this *RtspClient) AuthBasic(phase string, message string) bool {
 		return false
 	}
 	if status, message := this.Read(); status && strings.Contains(message, "200") {
-		this.track = ParseMedia(message)
+		this.track = this.ParseMedia(message)
 		return true
 	}
 	return false
@@ -391,7 +391,7 @@ func (this *RtspClient) AuthDigest(phase string, message string) bool {
 		return false
 	}
 	if status, message := this.Read(); status && strings.Contains(message, "200") {
-		this.track = ParseMedia(message)
+		this.track = this.ParseMedia(message)
 		return true
 	}
 	return false
@@ -455,48 +455,49 @@ func ParseSession(header string) string {
 	}
 	return ""
 }
-func ParseMedia(header string) []string {
-	letters := []string{}
-	mparsed := strings.Split(header, "\r\n")
-	paste := ""
 
-	// if true {
-	// 	log.Println("headers", header)
-	// }
+// func ParseMedia(header string) []string {
+// 	letters := []string{}
+// 	mparsed := strings.Split(header, "\r\n")
+// 	paste := ""
 
-	for _, element := range mparsed {
-		if strings.Contains(element, "a=control:") && !strings.Contains(element, "*") {
-			paste = element[10:]
-			if strings.Contains(element, "/") {
-				striped := strings.Split(element, "/")
-				paste = striped[len(striped)-1]
-			}
-			letters = append(letters, paste)
-		}
+// 	// if true {
+// 	// 	log.Println("headers", header)
+// 	// }
 
-		dimensionsPrefix := "a=x-dimensions:"
-		if strings.HasPrefix(element, dimensionsPrefix) {
-			dims := []int{}
-			for _, s := range strings.Split(element[len(dimensionsPrefix):], ",") {
-				v := 0
-				fmt.Sscanf(s, "%d", &v)
-				if v <= 0 {
-					break
-				}
-				dims = append(dims, v)
-			}
-			if len(dims) == 2 {
-				VideoWidth = dims[0]
-				VideoHeight = dims[1]
-			}
-		}
-		if strings.Contains(element, "sprop-parameter-sets") {
-			group := spropReg.FindAllStringSubmatch(element, -1)
-			log.Println(group[1])
-		}
-	}
-	return letters
-}
+// 	for _, element := range mparsed {
+// 		if strings.Contains(element, "a=control:") && !strings.Contains(element, "*") {
+// 			paste = element[10:]
+// 			if strings.Contains(element, "/") {
+// 				striped := strings.Split(element, "/")
+// 				paste = striped[len(striped)-1]
+// 			}
+// 			letters = append(letters, paste)
+// 		}
+
+// 		dimensionsPrefix := "a=x-dimensions:"
+// 		if strings.HasPrefix(element, dimensionsPrefix) {
+// 			dims := []int{}
+// 			for _, s := range strings.Split(element[len(dimensionsPrefix):], ",") {
+// 				v := 0
+// 				fmt.Sscanf(s, "%d", &v)
+// 				if v <= 0 {
+// 					break
+// 				}
+// 				dims = append(dims, v)
+// 			}
+// 			if len(dims) == 2 {
+// 				VideoWidth = dims[0]
+// 				VideoHeight = dims[1]
+// 			}
+// 		}
+// 		if strings.Contains(element, "sprop-parameter-sets") {
+// 			group := spropReg.FindAllStringSubmatch(element, -1)
+// 			log.Println(group[1])
+// 		}
+// 	}
+// 	return letters
+// }
 func GetMD5Hash(text string) string {
 	hash := md5.Sum([]byte(text))
 	return hex.EncodeToString(hash[:])

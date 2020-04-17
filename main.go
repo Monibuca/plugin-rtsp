@@ -23,12 +23,10 @@ var config = struct {
 
 func init() {
 	InstallPlugin(&PluginConfig{
-		Name:    "RTSP",
-		Type:    PLUGIN_PUBLISHER | PLUGIN_HOOK,
-		Version: "1.0.0",
-		Config:  &config,
-		UI:      util.CurrentDir("dashboard", "ui", "plugin-rtsp.min.js"),
-		Run:     runPlugin,
+		Name:   "RTSP",
+		Type:   PLUGIN_PUBLISHER | PLUGIN_HOOK,
+		Config: &config,
+		Run:    runPlugin,
 	})
 }
 func runPlugin() {
