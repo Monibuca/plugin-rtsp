@@ -181,37 +181,113 @@ if (typeof window !== 'undefined') {
 // Indicate to webpack that this file can be concatenated
 /* harmony default export */ var setPublicPath = (null);
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"29918b3a-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/App.vue?vue&type=template&id=6fc0793e&
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{directives:[{name:"loading",rawName:"v-loading",value:(_vm.Rooms==null),expression:"Rooms==null"}]},[(_vm.Rooms==null)?_c('div'):(_vm.Rooms.length==0)?_c('div',{staticClass:"empty"},[_c('Icon',{attrs:{"type":"md-wine","size":"50"}}),_vm._v("没有任何房间 ")],1):_c('div',{staticClass:"layout"},_vm._l((_vm.Rooms),function(item){return _c('Card',{key:item.RoomInfo.StreamPath,staticClass:"room"},[_c('p',{attrs:{"slot":"title"},slot:"title"},[_vm._v(_vm._s(item.RoomInfo.StreamPath))]),_c('StartTime',{attrs:{"slot":"extra","value":item.RoomInfo.StartTime},slot:"extra"}),_c('div',{staticClass:"hls-info"},[_c('Progress',{attrs:{"stroke-width":20,"percent":Math.ceil(item.BufferRate),"text-inside":""}}),_c('div',[_vm._v("📜"+_vm._s(item.SyncCount))])],1),_c('Button',{on:{"click":function($event){return _vm.showHeader(item)}}},[_c('Icon',{attrs:{"type":"ios-code-working"}})],1)],1)}),1),_c('mu-dialog',{attrs:{"title":"拉流转发","width":"360","open":_vm.openPull},on:{"update:open":function($event){_vm.openPull=$event}}},[_c('mu-text-field',{attrs:{"label":"rtsp url","label-float":"","help-text":"Please enter URL of rtsp..."},model:{value:(_vm.remoteAddr),callback:function ($$v) {_vm.remoteAddr=$$v},expression:"remoteAddr"}}),_c('mu-text-field',{attrs:{"label":"streamPath","label-float":"","help-text":"Please enter streamPath to publish."},model:{value:(_vm.streamPath),callback:function ($$v) {_vm.streamPath=$$v},expression:"streamPath"}}),_c('mu-button',{attrs:{"slot":"actions","flat":"","color":"primary"},on:{"click":_vm.addPull},slot:"actions"},[_vm._v("确定")])],1)],1)}
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"29918b3a-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/App.vue?vue&type=template&id=0225c7f1&
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('mu-data-table',{attrs:{"data":_vm.Streams,"columns":_vm.columns},scopedSlots:_vm._u([{key:"default",fn:function(ref){
+var item = ref.row;
+return [_c('td',[_vm._v(_vm._s(item.StreamInfo.StreamPath))]),_c('td',[_c('StartTime',{attrs:{"value":item.StreamInfo.StartTime}})],1),_c('td',[_c('Progress',{attrs:{"stroke-width":20,"percent":Math.ceil(item.BufferRate),"text-inside":""}})],1),_c('td',[_vm._v(_vm._s(item.SyncCount))]),_c('td',[_c('mu-button',{attrs:{"flat":""},on:{"click":function($event){return _vm.showHeader(item)}}},[_vm._v("头信息")])],1)]}}])}),_c('mu-dialog',{attrs:{"title":"拉流转发","width":"360","open":_vm.openPull},on:{"update:open":function($event){_vm.openPull=$event}}},[_c('mu-text-field',{attrs:{"label":"rtsp url","label-float":"","help-text":"Please enter URL of rtsp..."},model:{value:(_vm.remoteAddr),callback:function ($$v) {_vm.remoteAddr=$$v},expression:"remoteAddr"}}),_c('mu-text-field',{attrs:{"label":"streamPath","label-float":"","help-text":"Please enter streamPath to publish."},model:{value:(_vm.streamPath),callback:function ($$v) {_vm.streamPath=$$v},expression:"streamPath"}}),_c('mu-button',{attrs:{"slot":"actions","flat":"","color":"primary"},on:{"click":_vm.addPull},slot:"actions"},[_vm._v("确定")])],1)],1)}
 var staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/App.vue?vue&type=template&id=6fc0793e&
+// CONCATENATED MODULE: ./src/App.vue?vue&type=template&id=0225c7f1&
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"29918b3a-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/StartTime.vue?vue&type=template&id=2632acaa&scoped=true&
-var StartTimevue_type_template_id_2632acaa_scoped_true_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('Poptip',{attrs:{"trigger":"hover","content":'⌚️'+ new Date(_vm.value).toLocaleString()}},[_c('Time',{attrs:{"time":new Date(_vm.value)}})],1)}
-var StartTimevue_type_template_id_2632acaa_scoped_true_staticRenderFns = []
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/App.vue?vue&type=script&lang=js&
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
+let listES = null;
+/* harmony default export */ var Appvue_type_script_lang_js_ = ({
+    components: {
+        StartTime
+    },
+    data() {
+        return {
+            currentStream: null,
+            Streams: null,
+            remoteAddr: "",
+            streamPath: "",
+            openPull: false,
+            columns:["StreamPath","开始时间","缓冲","同步数","操作" ].map(title=>({title}))
+        };
+    },
 
-// CONCATENATED MODULE: ./src/components/StartTime.vue?vue&type=template&id=2632acaa&scoped=true&
-
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/StartTime.vue?vue&type=script&lang=js&
-//
-//
-//
-//
-//
-//
-
-/* harmony default export */ var StartTimevue_type_script_lang_js_ = ({
-    name: "StartTime",
-    props: {
-        value: String
+    methods: {
+        fetchlist() {
+            listES = new EventSource(this.apiHost + "/rtsp/list");
+            listES.onmessage = evt => {
+                if (!evt.data) return;
+                this.Streams = JSON.parse(evt.data) || [];
+                this.Streams.sort((a, b) =>
+                    a.StreamInfo.StreamPath > b.StreamInfo.StreamPath ? 1 : -1
+                );
+            };
+        },
+        showHeader(item) {
+            this.$Modal.info({
+                title: "RTSP Header",
+                width: "1000px",
+                scrollable: true,
+                content: item.Header
+            });
+        },
+        addPull() {
+            this.openPull = false;
+            this.ajax
+                .getJSON(this.apiHost + "/rtsp/pull", {
+                    target: this.remoteAddr,
+                    streamPath: this.streamPath
+                })
+                .then(x => {
+                    if (x.code == 0) {
+                        this.$toast.success("已启动拉流");
+                    } else {
+                        this.$toast.error(x.msg);
+                    }
+                });
+        }
+    },
+    mounted() {
+        this.fetchlist();
+        let _this = this;
+        this.$parent.titleOps = [
+            {
+                template:'<m-button @click="onClick">拉流转发</m-button>',
+                methods:{
+                    onClick(){
+                        _this.openPull = true;
+                    }
+                }
+            }
+        ]
+    },
+    destroyed() {
+        listES.close();
     }
 });
 
-// CONCATENATED MODULE: ./src/components/StartTime.vue?vue&type=script&lang=js&
- /* harmony default export */ var components_StartTimevue_type_script_lang_js_ = (StartTimevue_type_script_lang_js_); 
+// CONCATENATED MODULE: ./src/App.vue?vue&type=script&lang=js&
+ /* harmony default export */ var src_Appvue_type_script_lang_js_ = (Appvue_type_script_lang_js_); 
+// EXTERNAL MODULE: ./src/App.vue?vue&type=style&index=0&lang=css&
+var Appvue_type_style_index_0_lang_css_ = __webpack_require__("034f");
+
 // CONCATENATED MODULE: ./node_modules/vue-loader/lib/runtime/componentNormalizer.js
 /* globals __VUE_SSR_CONTEXT__ */
 
@@ -307,130 +383,6 @@ function normalizeComponent (
   }
 }
 
-// CONCATENATED MODULE: ./src/components/StartTime.vue
-
-
-
-
-
-/* normalize component */
-
-var component = normalizeComponent(
-  components_StartTimevue_type_script_lang_js_,
-  StartTimevue_type_template_id_2632acaa_scoped_true_render,
-  StartTimevue_type_template_id_2632acaa_scoped_true_staticRenderFns,
-  false,
-  null,
-  "2632acaa",
-  null
-  
-)
-
-/* harmony default export */ var StartTime = (component.exports);
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/App.vue?vue&type=script&lang=js&
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-
-let listES = null;
-
-/* harmony default export */ var Appvue_type_script_lang_js_ = ({
-    components: {
-        StartTime: StartTime
-    },
-    data() {
-        return {
-            currentStream: null,
-            Rooms: null,
-            remoteAddr: "",
-            streamPath: "",
-            openPull: false
-        };
-    },
-
-    methods: {
-        fetchlist() {
-            listES = new EventSource(this.apiHost + "/rtsp/list");
-            listES.onmessage = evt => {
-                if (!evt.data) return;
-                this.Rooms = JSON.parse(evt.data) || [];
-                this.Rooms.sort((a, b) =>
-                    a.RoomInfo.StreamPath > b.RoomInfo.StreamPath ? 1 : -1
-                );
-            };
-        },
-        showHeader(item) {
-            this.$Modal.info({
-                title: "RTSP Header",
-                width: "1000px",
-                scrollable: true,
-                content: item.Header
-            });
-        },
-        addPull() {
-            this.openPull = false;
-            this.ajax
-                .getJSON(this.apiHost + "/rtsp/pull", {
-                    target: this.remoteAddr,
-                    streamPath: this.streamPath
-                })
-                .then(x => {
-                    if (x.code == 0) {
-                        this.$toast.success("已启动拉流");
-                    } else {
-                        this.$toast.error(x.msg);
-                    }
-                });
-        }
-    },
-    mounted() {
-        this.fetchlist();
-        this.$parent.menus = [
-            {
-                label: "拉流转发",
-                action: () => {
-                    this.openPull = true;
-                }
-            }
-        ];
-    },
-    destroyed() {
-        listES.close();
-        this.$parent.menus = [];
-    }
-});
-
-// CONCATENATED MODULE: ./src/App.vue?vue&type=script&lang=js&
- /* harmony default export */ var src_Appvue_type_script_lang_js_ = (Appvue_type_script_lang_js_); 
-// EXTERNAL MODULE: ./src/App.vue?vue&type=style&index=0&lang=css&
-var Appvue_type_style_index_0_lang_css_ = __webpack_require__("034f");
-
 // CONCATENATED MODULE: ./src/App.vue
 
 
@@ -440,7 +392,7 @@ var Appvue_type_style_index_0_lang_css_ = __webpack_require__("034f");
 
 /* normalize component */
 
-var App_component = normalizeComponent(
+var component = normalizeComponent(
   src_Appvue_type_script_lang_js_,
   render,
   staticRenderFns,
@@ -451,7 +403,7 @@ var App_component = normalizeComponent(
   
 )
 
-/* harmony default export */ var App = (App_component.exports);
+/* harmony default export */ var App = (component.exports);
 // CONCATENATED MODULE: ./node_modules/@vue/cli-service/lib/commands/build/entry-lib.js
 
 

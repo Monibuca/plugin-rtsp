@@ -1,22 +1,14 @@
 <template>
-    <div v-loading="Rooms==null">
-        <div v-if="Rooms==null"></div>
-        <div v-else-if="Rooms.length==0" class="empty">
-            <Icon type="md-wine" size="50" />没有任何房间
-        </div>
-        <div class="layout" v-else>
-            <Card v-for="item in Rooms" :key="item.RoomInfo.StreamPath" class="room">
-                <p slot="title">{{item.RoomInfo.StreamPath}}</p>
-                <StartTime slot="extra" :value="item.RoomInfo.StartTime"></StartTime>
-                <div class="hls-info">
-                    <Progress :stroke-width="20" :percent="Math.ceil(item.BufferRate)" text-inside />
-                    <div>📜{{item.SyncCount}}</div>
-                </div>
-                <Button @click="showHeader(item)">
-                    <Icon type="ios-code-working" />
-                </Button>
-            </Card>
-        </div>
+    <div>
+        <mu-data-table :data="Streams" :columns="columns">
+            <template #default="{row:item}">
+                <td>{{item.StreamInfo.StreamPath}}</td>
+                <td><StartTime :value="item.StreamInfo.StartTime"></StartTime></td>
+                <td><Progress :stroke-width="20" :percent="Math.ceil(item.BufferRate)" text-inside /></td>
+                <td>{{item.SyncCount}}</td>
+                <td><mu-button flat @click="showHeader(item)">头信息</mu-button></td>
+            </template>
+        </mu-data-table>
         <mu-dialog title="拉流转发" width="360" :open.sync="openPull">
             <mu-text-field v-model="remoteAddr" label="rtsp url" label-float help-text="Please enter URL of rtsp...">
             </mu-text-field>
@@ -29,7 +21,6 @@
 
 <script>
 let listES = null;
-import StartTime from "./components/StartTime";
 export default {
     components: {
         StartTime
@@ -37,10 +28,11 @@ export default {
     data() {
         return {
             currentStream: null,
-            Rooms: null,
+            Streams: null,
             remoteAddr: "",
             streamPath: "",
-            openPull: false
+            openPull: false,
+            columns:["StreamPath","开始时间","缓冲","同步数","操作" ].map(title=>({title}))
         };
     },
 
@@ -49,9 +41,9 @@ export default {
             listES = new EventSource(this.apiHost + "/rtsp/list");
             listES.onmessage = evt => {
                 if (!evt.data) return;
-                this.Rooms = JSON.parse(evt.data) || [];
-                this.Rooms.sort((a, b) =>
-                    a.RoomInfo.StreamPath > b.RoomInfo.StreamPath ? 1 : -1
+                this.Streams = JSON.parse(evt.data) || [];
+                this.Streams.sort((a, b) =>
+                    a.StreamInfo.StreamPath > b.StreamInfo.StreamPath ? 1 : -1
                 );
             };
         },
@@ -81,24 +73,25 @@ export default {
     },
     mounted() {
         this.fetchlist();
-        this.$parent.menus = [
+        let _this = this;
+        this.$parent.titleOps = [
             {
-                label: "拉流转发",
-                action: () => {
-                    this.openPull = true;
+                template:'<m-button @click="onClick">拉流转发</m-button>',
+                methods:{
+                    onClick(){
+                        _this.openPull = true;
+                    }
                 }
             }
-        ];
+        ]
     },
     destroyed() {
         listES.close();
-        this.$parent.menus = [];
     }
 };
 </script>
 
 <style>
-@import url("/iview.css");
 .empty {
     color: #eb5e46;
     width: 100%;
