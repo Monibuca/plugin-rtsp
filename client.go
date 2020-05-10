@@ -1,12 +1,14 @@
-package rtspplugin
+package rtsp
 
 import (
+	"bufio"
+	"bytes"
 	"crypto/md5"
-	b64 "encoding/base64"
-	"encoding/hex"
+	"encoding/binary"
 	"fmt"
+	. "github.com/Monibuca/engine/v2"
+	"github.com/pixelbender/go-sdp/sdp"
 	"io"
-	"log"
 	"net"
 	"net/url"
 	"regexp"
@@ -15,532 +17,540 @@ import (
 	"time"
 )
 
-var (
-	VideoWidth  int
-	VideoHeight int
-	spropReg    *regexp.Regexp
-	configReg   *regexp.Regexp
-)
-
-func init() {
-	spropReg, _ = regexp.Compile("sprop-parameter-sets=([^;]+)")
-	configReg, _ = regexp.Compile("config=([^;]+)")
+// PullStream 从外部拉流
+func (rtsp *RTSP) PullStream(streamPath string, rtspUrl string) (result bool) {
+	if result = rtsp.Publisher.Publish(streamPath); result {
+		rtsp.Stream.Type = "RTSP"
+		rtsp.RTSPInfo.StreamInfo = &rtsp.Stream.StreamInfo
+		rtsp.TransType = TRANS_TYPE_TCP
+		rtsp.vRTPChannel = 0
+		rtsp.vRTPControlChannel = 1
+		rtsp.aRTPChannel = 2
+		rtsp.aRTPControlChannel = 3
+		rtsp.URL = rtspUrl
+		if err := rtsp.requestStream();err != nil {
+			rtsp.Close()
+			return false
+		}
+		go rtsp.startStream()
+		collection.Store(streamPath, rtsp)
+		// 	go rtsp.run()
+	}
+	return
 }
+func DigestAuth(authLine string, method string, URL string) (string, error) {
+	l, err := url.Parse(URL)
+	if err != nil {
+		return "", fmt.Errorf("Url parse error:%v,%v", URL, err)
+	}
+	realm := ""
+	nonce := ""
+	realmRex := regexp.MustCompile(`realm="(.*?)"`)
+	result1 := realmRex.FindStringSubmatch(authLine)
 
-type RtspClient struct {
-	socket              net.Conn
-	OutGoing            chan []byte //out chanel
-	Signals             chan bool   //Signals quit
-	host                string      //host
-	port                string      //port
-	uri                 string      //url
-	auth                bool        //aut
-	login               string
-	password            string   //password
-	session             string   //rtsp session
-	responce            string   //responce string
-	bauth               string   //string b auth
-	track               []string //rtsp track
-	cseq                int      //qury number
-	videow              int
-	videoh              int
-	SPS                 []byte
-	PPS                 []byte
-	Header              string
-	AudioSpecificConfig []byte
-}
+	nonceRex := regexp.MustCompile(`nonce="(.*?)"`)
+	result2 := nonceRex.FindStringSubmatch(authLine)
 
-//RtspClientNew 返回空的初始化对象
-func RtspClientNew(bufferLength int) *RtspClient {
-	Obj := &RtspClient{
-		cseq:     1,                               //查询起始号码
-		Signals:  make(chan bool, 1),              //一个消息缓冲通道
-		OutGoing: make(chan []byte, bufferLength), //输出通道
-	}
-	return Obj
-}
-
-func (this *RtspClient) Client(rtsp_url string) (bool, string) {
-	//Check back url
-	if !this.ParseUrl(rtsp_url) {
-		return false, "Incorrect url"
-	}
-	//Install connect to camera
-	if !this.Connect() {
-		return false, "cannot connect"
-	}
-	//Phase 1 options camera phase 1
-	//Send options request
-	if !this.Write("OPTIONS " + this.uri + " RTSP/1.0\r\nCSeq: " + strconv.Itoa(this.cseq) + "\r\n\r\n") {
-		return false, "Unable to send options message"
-	}
-	//Read the response to the options request
-	if status, message := this.Read(); !status {
-		return false, "Unable to read options response connection lost"
-	} else if status && strings.Contains(message, "Digest") {
-		if !this.AuthDigest("OPTIONS", message) {
-			return false, "Summary of authorization required"
-		}
-	} else if status && strings.Contains(message, "Basic") {
-		if !this.AuthBasic("OPTIONS", message) {
-			return false, "Need certification Basic"
-		}
-	} else if !strings.Contains(message, "200") {
-		return false, "error OPTIONS not status code 200 OK " + message
-	}
-
-	////////////PHASE 2 DESCRIBE
-	log.Println("DESCRIBE " + this.uri + " RTSP/1.0\r\nCSeq: " + strconv.Itoa(this.cseq) + this.bauth + "\r\n\r\n")
-	if !this.Write("DESCRIBE " + this.uri + " RTSP/1.0\r\nCSeq: " + strconv.Itoa(this.cseq) + this.bauth + "\r\n\r\n") {
-		return false, "Unable to send query DESCRIBE"
-	}
-	if status, message := this.Read(); !status {
-		return false, "Can't read response for decscribe connection loss?"
-	} else if status && strings.Contains(message, "Digest") {
-		if !this.AuthDigest("DESCRIBE", message) {
-			return false, "Summary of authorization required"
-		}
-	} else if status && strings.Contains(message, "Basic") {
-		if !this.AuthBasic("DESCRIBE", message) {
-			return false, "Basis of authorization required"
-		}
-	} else if !strings.Contains(message, "200") {
-		return false, "error DESCRIBE not status code 200 OK " + message
+	if len(result1) == 2 {
+		realm = result1[1]
 	} else {
-		this.Header = message
-		this.track = this.ParseMedia(message)
-
+		return "", fmt.Errorf("auth error : no realm found")
 	}
-	if len(this.track) == 0 {
-		return false, "error track not found "
-	}
-	//PHASE 3 SETUP
-	log.Println("SETUP " + this.uri + "/" + this.track[0] + " RTSP/1.0\r\nCSeq: " + strconv.Itoa(this.cseq) + "\r\nTransport: RTP/AVP/TCP;unicast;interleaved=0-1" + this.bauth + "\r\n\r\n")
-	if !this.Write("SETUP " + this.uri + "/" + this.track[0] + " RTSP/1.0\r\nCSeq: " + strconv.Itoa(this.cseq) + "\r\nTransport: RTP/AVP/TCP;unicast;interleaved=0-1" + this.bauth + "\r\n\r\n") {
-		return false, ""
-	}
-	if status, message := this.Read(); !status {
-		return false, "Unable to read response for missing setup connection."
-
-	} else if !strings.Contains(message, "200") {
-		if strings.Contains(message, "401") {
-			str := this.AuthDigest_Only("SETUP", message)
-			if !this.Write("SETUP " + this.uri + "/" + this.track[0] + " RTSP/1.0\r\nCSeq: " + strconv.Itoa(this.cseq) + "\r\nTransport: RTP/AVP/TCP;unicast;interleaved=0-1" + this.bauth + str + "\r\n\r\n") {
-				return false, ""
-			}
-			if status, message := this.Read(); !status {
-				return false, "Unable to read response for missing setup connection."
-
-			} else if !strings.Contains(message, "200") {
-
-				return false, "error SETUP not status code 200 OK " + message
-
-			} else {
-				this.session = ParseSession(message)
-			}
-		} else {
-			return false, "error SETUP not status code 200 OK " + message
-		}
+	if len(result2) == 2 {
+		nonce = result2[1]
 	} else {
-		log.Println(message)
-		this.session = ParseSession(message)
-		log.Println(this.session)
+		return "", fmt.Errorf("auth error : no nonce found")
 	}
-	if len(this.track) > 1 {
+	// response= md5(md5(username:realm:password):nonce:md5(public_method:url));
+	username := l.User.Username()
+	password, _ := l.User.Password()
+	l.User = nil
+	if l.Port() == "" {
+		l.Host = fmt.Sprintf("%s:%s", l.Host, "554")
+	}
+	md5UserRealmPwd := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%s:%s:%s", username, realm, password))))
+	md5MethodURL := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%s:%s", method, l.String()))))
 
-		if !this.Write("SETUP " + this.uri + "/" + this.track[1] + " RTSP/1.0\r\nCSeq: " + strconv.Itoa(this.cseq) + "\r\nTransport: RTP/AVP/TCP;unicast;interleaved=2-3" + "\r\nSession: " + this.session + this.bauth + "\r\n\r\n") {
-			return false, ""
-		}
-		if status, message := this.Read(); !status {
-			return false, "Unable to read response for missing setup audio connection."
-
-		} else if !strings.Contains(message, "200") {
-			if strings.Contains(message, "401") {
-				str := this.AuthDigest_Only("SETUP", message)
-				if !this.Write("SETUP " + this.uri + "/" + this.track[1] + " RTSP/1.0\r\nCSeq: " + strconv.Itoa(this.cseq) + "\r\nTransport: RTP/AVP/TCP;unicast;interleaved=2-3" + this.bauth + str + "\r\n\r\n") {
-					return false, ""
+	response := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%s:%s:%s", md5UserRealmPwd, nonce, md5MethodURL))))
+	Authorization := fmt.Sprintf("Digest username=\"%s\", realm=\"%s\", nonce=\"%s\", uri=\"%s\", response=\"%s\"", username, realm, nonce, l.String(), response)
+	return Authorization, nil
+}
+func (client *RTSP) checkAuth(method string, resp *Response) (string, error) {
+	if resp.StatusCode == 401 {
+		// need auth.
+		AuthHeaders := resp.Header["WWW-Authenticate"]
+		auths, ok := AuthHeaders.([]string)
+		if ok {
+			for _, authLine := range auths {
+				if strings.IndexAny(authLine, "Digest") == 0 {
+					// 					realm="HipcamRealServer",
+					// nonce="3b27a446bfa49b0c48c3edb83139543d"
+					client.authLine = authLine
+					return DigestAuth(authLine, method, client.URL)
+				} else if strings.IndexAny(authLine, "Basic") == 0 {
+					// not support yet
+					// TODO..
 				}
-				if status, message := this.Read(); !status {
-					return false, "Unable to read response for missing setup audio connection."
+			}
+			return "", fmt.Errorf("auth error")
+		} else {
+			authLine, _ := AuthHeaders.(string)
+			if strings.IndexAny(authLine, "Digest") == 0 {
+				client.authLine = authLine
+				return DigestAuth(authLine, method, client.URL)
+			} else if strings.IndexAny(authLine, "Basic") == 0 {
+				// not support yet
+				// TODO..
+				return "", fmt.Errorf("not support Basic auth yet")
+			}
+		}
+	}
+	return "", nil
+}
+func (client *RTSP) requestStream() (err error) {
+	timeout := time.Duration(5) * time.Second
+	l, err := url.Parse(client.URL)
+	if err != nil {
+		return err
+	}
+	if strings.ToLower(l.Scheme) != "rtsp" {
+		err = fmt.Errorf("RTSP url is invalid")
+		return err
+	}
+	if strings.ToLower(l.Hostname()) == "" {
+		err = fmt.Errorf("RTSP url is invalid")
+		return err
+	}
+	port := l.Port()
+	if len(port) == 0 {
+		port = "554"
+	}
+	conn, err := net.DialTimeout("tcp", l.Hostname()+":"+port, timeout)
+	if err != nil {
+		// handle error
+		return err
+	}
 
-				} else if !strings.Contains(message, "200") {
+	networkBuffer := 204800
 
-					return false, "error SETUP not status code 200 OK " + message
+	timeoutConn := RichConn{
+		conn,
+		timeout,
+	}
+	client.Conn = &timeoutConn
+	client.connRW = bufio.NewReadWriter(bufio.NewReaderSize(&timeoutConn, networkBuffer), bufio.NewWriterSize(&timeoutConn, networkBuffer))
 
-				} else {
-					log.Println(message)
-					this.session = ParseSession(message)
+	headers := make(map[string]string)
+	headers["Require"] = "implicit-play"
+	// An OPTIONS request returns the request types the server will accept.
+	resp, err := client.Request("OPTIONS", headers)
+	if err != nil {
+		if resp != nil {
+			Authorization, _ := client.checkAuth("OPTIONS", resp)
+			if len(Authorization) > 0 {
+				headers := make(map[string]string)
+				headers["Require"] = "implicit-play"
+				headers["Authorization"] = Authorization
+				// An OPTIONS request returns the request types the server will accept.
+				resp, err = client.Request("OPTIONS", headers)
+			}
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+
+	// A DESCRIBE request includes an RTSP URL (rtsp://...), and the type of reply data that can be handled. This reply includes the presentation description,
+	// typically in Session Description Protocol (SDP) format. Among other things, the presentation description lists the media streams controlled with the aggregate URL.
+	// In the typical case, there is one media stream each for audio and video.
+	headers = make(map[string]string)
+	headers["Accept"] = "application/sdp"
+	resp, err = client.Request("DESCRIBE", headers)
+	if err != nil {
+		if resp != nil {
+			authorization, _ := client.checkAuth("DESCRIBE", resp)
+			if len(authorization) > 0 {
+				headers := make(map[string]string)
+				headers["Authorization"] = authorization
+				headers["Accept"] = "application/sdp"
+				resp, err = client.Request("DESCRIBE", headers)
+			}
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+	_sdp, err := sdp.ParseString(resp.Body)
+	if err != nil {
+		return err
+	}
+	client.Sdp = _sdp
+	client.SDPRaw = resp.Body
+	client.SDPMap = ParseSDP(client.SDPRaw)
+	session := ""
+	for _, media := range _sdp.Media {
+		switch media.Type {
+		case "video":
+			client.VControl = media.Attributes.Get("control")
+			client.VCodec = media.Format[0].Name
+			client.SPS = client.SDPMap["video"].SpropParameterSets[0]
+			client.PPS = client.SDPMap["video"].SpropParameterSets[1]
+			var _url = ""
+			if strings.Index(strings.ToLower(client.VControl), "rtsp://") == 0 {
+				_url = client.VControl
+			} else {
+				_url = strings.TrimRight(client.URL, "/") + "/" + strings.TrimLeft(client.VControl, "/")
+			}
+			headers = make(map[string]string)
+			if client.TransType == TRANS_TYPE_TCP {
+				headers["Transport"] = fmt.Sprintf("RTP/AVP/TCP;unicast;interleaved=%d-%d", client.vRTPChannel, client.vRTPControlChannel)
+			} else {
+				if client.UDPServer == nil {
+					client.UDPServer = &UDPServer{Session: client}
 				}
-			} else {
-				return false, "error SETUP not status code 200 OK " + message
+				//RTP/AVP;unicast;client_port=64864-64865
+				err = client.UDPServer.SetupVideo()
+				if err != nil {
+					Printf("Setup video err.%v", err)
+					return err
+				}
+				headers["Transport"] = fmt.Sprintf("RTP/AVP/UDP;unicast;client_port=%d-%d", client.UDPServer.VPort, client.UDPServer.VControlPort)
+				client.Conn.timeout = 0 //	UDP ignore timeout
 			}
-		} else {
-			log.Println(message)
-			this.session = ParseSession(message)
+			if session != "" {
+				headers["Session"] = session
+			}
+			Printf("Parse DESCRIBE response, VIDEO VControl:%s, VCode:%s, url:%s,Session:%s,vRTPChannel:%d,vRTPControlChannel:%d", client.VControl, client.VCodec, _url, session, client.vRTPChannel, client.vRTPControlChannel)
+			resp, err = client.RequestWithPath("SETUP", _url, headers, true)
+			if err != nil {
+				return err
+			}
+			session, _ = resp.Header["Session"].(string)
+		case "audio":
+			client.AControl = media.Attributes.Get("control")
+			client.ACodec = media.Format[0].Name
+			client.AudioSpecificConfig = client.SDPMap["audio"].Config
+			var _url = ""
+			if strings.Index(strings.ToLower(client.AControl), "rtsp://") == 0 {
+				_url = client.AControl
+			} else {
+				_url = strings.TrimRight(client.URL, "/") + "/" + strings.TrimLeft(client.AControl, "/")
+			}
+			headers = make(map[string]string)
+			if client.TransType == TRANS_TYPE_TCP {
+				headers["Transport"] = fmt.Sprintf("RTP/AVP/TCP;unicast;interleaved=%d-%d", client.aRTPChannel, client.aRTPControlChannel)
+			} else {
+				if client.UDPServer == nil {
+					client.UDPServer = &UDPServer{Session: client}
+				}
+				err = client.UDPServer.SetupAudio()
+				if err != nil {
+					Printf("Setup audio err.%v", err)
+					return err
+				}
+				headers["Transport"] = fmt.Sprintf("RTP/AVP/UDP;unicast;client_port=%d-%d", client.UDPServer.APort, client.UDPServer.AControlPort)
+				client.Conn.timeout = 0 //	UDP ignore timeout
+			}
+			if session != "" {
+				headers["Session"] = session
+			}
+			Printf("Parse DESCRIBE response, AUDIO AControl:%s, ACodec:%s, url:%s,Session:%s, aRTPChannel:%d,aRTPControlChannel:%d", client.AControl, client.ACodec, _url, session, client.aRTPChannel, client.aRTPControlChannel)
+			resp, err = client.RequestWithPath("SETUP", _url, headers, true)
+			if err != nil {
+				return err
+			}
+			session, _ = resp.Header["Session"].(string)
 		}
 	}
-
-	//PHASE 4 SETUP
-	log.Println("PLAY " + this.uri + " RTSP/1.0\r\nCSeq: " + strconv.Itoa(this.cseq) + "\r\nSession: " + this.session + this.bauth + "\r\n\r\n")
-	if !this.Write("PLAY " + this.uri + " RTSP/1.0\r\nCSeq: " + strconv.Itoa(this.cseq) + "\r\nSession: " + this.session + this.bauth + "\r\n\r\n") {
-		return false, ""
+	headers = make(map[string]string)
+	if session != "" {
+		headers["Session"] = session
 	}
-	if status, message := this.Read(); !status {
-		return false, "Unable to read play response lost connection"
-
-	} else if !strings.Contains(message, "200") {
-		//return false, "Ошибка PLAY not status code 200 OK " + message
-		if strings.Contains(message, "401") {
-			str := this.AuthDigest_Only("PLAY", message)
-			if !this.Write("PLAY " + this.uri + " RTSP/1.0\r\nCSeq: " + strconv.Itoa(this.cseq) + "\r\nSession: " + this.session + this.bauth + str + "\r\n\r\n") {
-				return false, ""
-			}
-			if status, message := this.Read(); !status {
-				return false, "Unable to read play response lost connection"
-
-			} else if !strings.Contains(message, "200") {
-
-				return false, "error PLAY not status code 200 OK " + message
-
-			} else {
-				//this.session = ParseSession(message)
-				log.Print(message)
-				go this.RtspRtpLoop()
-				return true, "ok"
-			}
-		} else {
-			return false, "error PLAY not status code 200 OK " + message
-		}
-	} else {
-		log.Print(message)
-		go this.RtspRtpLoop()
-		return true, "ok"
+	resp, err = client.Request("PLAY", headers)
+	if err != nil {
+		return err
 	}
-	return false, "other error"
+	return nil
 }
 
-/*
-	The RTP header has the following format:
-    0                   1                   2                   3
-    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |V=2|P|X|  CC   |M|     PT      |       sequence number         |
-   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |                           timestamp                           |
-   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |           synchronization source (SSRC) identifier            |
-   +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
-   |            contributing source (CSRC) identifiers             |
-   |                             ....                              |
-   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   version (V): 2 bits
-      This field identifies the version of RTP.  The version defined by
-      this specification is two (2).  (The value 1 is used by the first
-      draft version of RTP and the value 0 is used by the protocol
-      initially implemented in the "vat" audio tool.)
-   padding (P): 1 bit
-      If the padding bit is set, the packet contains one or more
-      additional padding octets at the end which are not part of the
-      payload.  The last octet of the padding contains a count of how
-      many padding octets should be ignored, including itself.  Padding
-      may be needed by some encryption algorithms with fixed block sizes
-      or for carrying several RTP packets in a lower-layer protocol data
-      unit.
-   extension (X): 1 bit
-      If the extension bit is set, the fixed header MUST be followed by
-      exactly one header extension, with a format defined in Section
-      5.3.1.
-*/
-func (this *RtspClient) RtspRtpLoop() {
-	defer func() {
-		this.Signals <- true
-	}()
-	header := make([]byte, 4)
-	payload := make([]byte, 4096)
-	//sync := make([]byte, 256)
-	sync_b := make([]byte, 1)
-	timer := time.Now()
+func (client *RTSP) startStream() {
+	//startTime := time.Now()
+	//loggerTime := time.Now().Add(-10 * time.Second)
+	defer client.Stop()
 	for {
-		if int(time.Now().Sub(timer).Seconds()) > 50 {
-			if !this.Write("OPTIONS " + this.uri + " RTSP/1.0\r\nCSeq: " + strconv.Itoa(this.cseq) + "\r\nSession: " + this.session + this.bauth + "\r\n\r\n") {
-				return
-			}
-			timer = time.Now()
-		}
-		this.socket.SetDeadline(time.Now().Add(50 * time.Second))
-		//read rtp hdr 4
-		if n, err := io.ReadFull(this.socket, header); err != nil || n != 4 {
-			//rtp hdr read error
+		//if client.OptionIntervalMillis > 0 {
+		//	if time.Since(startTime) > time.Duration(client.OptionIntervalMillis)*time.Millisecond {
+		//		startTime = time.Now()
+		//		headers := make(map[string]string)
+		//		headers["Require"] = "implicit-play"
+		//		// An OPTIONS request returns the request types the server will accept.
+		//		if err := client.RequestNoResp("OPTIONS", headers); err != nil {
+		//			// ignore...
+		//		}
+		//	}
+		//}
+		b, err := client.connRW.ReadByte()
+		if err != nil {
+			Printf("client.connRW.ReadByte err:%v", err)
 			return
 		}
-		//log.Println(header)
-		if header[0] != 36 {
-			//log.Println("desync?", this.host)
+		switch b {
+		case 0x24: // rtp
+			header := make([]byte, 4)
+			header[0] = b
+			_, err := io.ReadFull(client.connRW, header[1:])
+			if err != nil {
+				Printf("io.ReadFull err:%v", err)
+				return
+			}
+			channel := int(header[1])
+			length := binary.BigEndian.Uint16(header[2:])
+			content := make([]byte, length)
+			_, err = io.ReadFull(client.connRW, content)
+			if err != nil {
+				Printf("io.ReadFull err:%v", err)
+				return
+			}
+			rtpBuf := content
+			var pack *RTPPack
+			switch channel {
+			case client.aRTPChannel:
+				pack = &RTPPack{
+					Type:   RTP_TYPE_AUDIO,
+					Buffer: rtpBuf,
+				}
+			case client.aRTPControlChannel:
+				pack = &RTPPack{
+					Type:   RTP_TYPE_AUDIOCONTROL,
+					Buffer: rtpBuf,
+				}
+			case client.vRTPChannel:
+				pack = &RTPPack{
+					Type:   RTP_TYPE_VIDEO,
+					Buffer: rtpBuf,
+				}
+			case client.vRTPControlChannel:
+				pack = &RTPPack{
+					Type:   RTP_TYPE_VIDEOCONTROL,
+					Buffer: rtpBuf,
+				}
+			default:
+				Printf("unknow rtp pack type, channel:%v", channel)
+				continue
+			}
+			if pack == nil {
+				Printf("session tcp got nil rtp pack")
+				continue
+			}
+
+			//if client.debugLogEnable {
+			//	rtp := ParseRTP(pack.Buffer)
+			//	if rtp != nil {
+			//		rtpSN := uint16(rtp.SequenceNumber)
+			//		if client.lastRtpSN != 0 && client.lastRtpSN+1 != rtpSN {
+			//			Printf("%s, %d packets lost, current SN=%d, last SN=%d\n", client.String(), rtpSN-client.lastRtpSN, rtpSN, client.lastRtpSN)
+			//		}
+			//		client.lastRtpSN = rtpSN
+			//	}
+			//
+			//	elapsed := time.Now().Sub(loggerTime)
+			//	if elapsed >= 30*time.Second {
+			//		Printf("%v read rtp frame.", client)
+			//		loggerTime = time.Now()
+			//	}
+			//}
+
+			client.InBytes += int(length + 4)
+			client.handleRTP(pack)
+
+		default: // rtsp
+			builder := bytes.Buffer{}
+			builder.WriteByte(b)
+			contentLen := 0
 			for {
-				///////////////////////////skeep/////////////////////////////////////
-				if n, err := io.ReadFull(this.socket, sync_b); err != nil && n != 1 {
+				line, prefix, err := client.connRW.ReadLine()
+				if err != nil {
+					Printf("client.connRW.ReadLine err:%v", err)
 					return
-				} else if sync_b[0] == 36 {
-					header[0] = 36
-					if n, err := io.ReadFull(this.socket, header[1:]); err != nil && n == 3 {
-						return
+				}
+				if len(line) == 0 {
+					if contentLen != 0 {
+						content := make([]byte, contentLen)
+						_, err = io.ReadFull(client.connRW, content)
+						if err != nil {
+							err = fmt.Errorf("Read content err.ContentLength:%d", contentLen)
+							return
+						}
+						builder.Write(content)
 					}
+					Printf("<<<[IN]\n%s", builder.String())
 					break
 				}
-			}
-			/*
-				//вычитываем 256 в попытке отсять мусор обрезать RTSP
-				if string(header) == "RTSP" {
-					if n, err := io.ReadFull(this.socket, sync); err != nil && n == 256 {
-						return
-					} else {
-						rtsp_rtp := []byte(strings.Split(string(sync), "\r\n\r\n")[1])
-						//отправим все что есть в буфере
-						this.SendBufer(rtsp_rtp)
-						continue
-					}
-				} else {
-					log.Println("full desync")
-					return
+				s := string(line)
+				builder.Write(line)
+				if !prefix {
+					builder.WriteString("\r\n")
 				}
-			*/
-		}
 
-		payloadLen := (int)(header[2])<<8 + (int)(header[3])
-		//log.Println("payloadLen", payloadLen)
-		if payloadLen > 4096 || payloadLen < 12 {
-			log.Println("desync", this.uri, payloadLen)
-			return
-		}
-		if n, err := io.ReadFull(this.socket, payload[:payloadLen]); err != nil || n != payloadLen {
-			return
-		} else {
-			this.OutGoing <- append(header, payload[:n]...)
+				if strings.Index(s, "Content-Length:") == 0 {
+					splits := strings.Split(s, ":")
+					contentLen, err = strconv.Atoi(strings.TrimSpace(splits[1]))
+					if err != nil {
+						Printf("strconv.Atoi err:%v, str:%v", err, splits[1])
+						return
+					}
+				}
+			}
 		}
 	}
-
 }
 
-//unsafe!
-func (this *RtspClient) SendBufer(bufer []byte) {
-	//Here you need to send all the packages from the send all buffer?
-	payload := make([]byte, 4096)
+func (client *RTSP) Request(method string, headers map[string]string) (*Response, error) {
+	l, err := url.Parse(client.URL)
+	if err != nil {
+		return nil, fmt.Errorf("Url parse error:%v", err)
+	}
+	l.User = nil
+	return client.RequestWithPath(method, l.String(), headers, true)
+}
+
+func (client *RTSP) RequestNoResp(method string, headers map[string]string) (err error) {
+	l, err := url.Parse(client.URL)
+	if err != nil {
+		return fmt.Errorf("Url parse error:%v", err)
+	}
+	l.User = nil
+	if _, err = client.RequestWithPath(method, l.String(), headers, false); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (client *RTSP) RequestWithPath(method string, path string, headers map[string]string, needResp bool) (resp *Response, err error) {
+	headers["User-Agent"] = client.Agent
+	if len(headers["Authorization"]) == 0 {
+		if len(client.authLine) != 0 {
+			Authorization, _ := DigestAuth(client.authLine, method, client.URL)
+			if len(Authorization) > 0 {
+				headers["Authorization"] = Authorization
+			}
+		}
+	}
+	if len(client.Session) > 0 {
+		headers["Session"] = client.Session
+	}
+	client.Seq++
+	cseq := client.Seq
+	builder := bytes.Buffer{}
+	builder.WriteString(fmt.Sprintf("%s %s RTSP/1.0\r\n", method, path))
+	builder.WriteString(fmt.Sprintf("CSeq: %d\r\n", cseq))
+	for k, v := range headers {
+		builder.WriteString(fmt.Sprintf("%s: %s\r\n", k, v))
+	}
+	builder.WriteString(fmt.Sprintf("\r\n"))
+	s := builder.String()
+	Printf("[OUT]>>>\n%s", s)
+	_, err = client.connRW.WriteString(s)
+	if err != nil {
+		return
+	}
+	client.connRW.Flush()
+
+	if !needResp {
+		return nil, nil
+	}
+	lineCount := 0
+	statusCode := 200
+	status := ""
+	sid := ""
+	contentLen := 0
+	respHeader := make(map[string]interface{})
+	var line []byte
+	builder.Reset()
 	for {
-		if len(bufer) < 4 {
-			log.Fatal("bufer small")
+		isPrefix := false
+		if line, isPrefix, err = client.connRW.ReadLine(); err != nil {
+			return
 		}
-		dataLength := (int)(bufer[2])<<8 + (int)(bufer[3])
-		if dataLength > len(bufer)+4 {
-			if n, err := io.ReadFull(this.socket, payload[:dataLength-len(bufer)+4]); err != nil {
-				return
-			} else {
-				this.OutGoing <- append(bufer, payload[:n]...)
-				return
-			}
-
-		} else {
-			this.OutGoing <- bufer[:dataLength+4]
-			bufer = bufer[dataLength+4:]
+		s := string(line)
+		builder.Write(line)
+		if !isPrefix {
+			builder.WriteString("\r\n")
 		}
-	}
-}
-func (this *RtspClient) Connect() bool {
-	d := &net.Dialer{Timeout: 3 * time.Second}
-	conn, err := d.Dial("tcp", this.host+":"+this.port)
-	if err != nil {
-		return false
-	}
-	this.socket = conn
-	return true
-}
-func (this *RtspClient) Write(message string) bool {
-	this.cseq += 1
-	if _, e := this.socket.Write([]byte(message)); e != nil {
-		return false
-	}
-	return true
-}
-func (this *RtspClient) Read() (bool, string) {
-	buffer := make([]byte, 4096)
-	if nb, err := this.socket.Read(buffer); err != nil || nb <= 0 {
-		log.Println("socket read failed", err)
-		return false, ""
-	} else {
-		return true, string(buffer[:nb])
-	}
-}
-func (this *RtspClient) AuthBasic(phase string, message string) bool {
-	this.bauth = "\r\nAuthorization: Basic " + b64.StdEncoding.EncodeToString([]byte(this.login+":"+this.password))
-	if !this.Write(phase + " " + this.uri + " RTSP/1.0\r\nCSeq: " + strconv.Itoa(this.cseq) + this.bauth + "\r\n\r\n") {
-		return false
-	}
-	if status, message := this.Read(); status && strings.Contains(message, "200") {
-		this.track = this.ParseMedia(message)
-		return true
-	}
-	return false
-}
-func (this *RtspClient) AuthDigest(phase string, message string) bool {
-	nonce := ParseDirective(message, "nonce")
-	realm := ParseDirective(message, "realm")
-	hs1 := GetMD5Hash(this.login + ":" + realm + ":" + this.password)
-	hs2 := GetMD5Hash(phase + ":" + this.uri)
-	responce := GetMD5Hash(hs1 + ":" + nonce + ":" + hs2)
-	dauth := "\r\n" + `Authorization: Digest username="` + this.login + `", realm="` + realm + `", nonce="` + nonce + `", uri="` + this.uri + `", response="` + responce + `"`
-	if !this.Write(phase + " " + this.uri + " RTSP/1.0\r\nCSeq: " + strconv.Itoa(this.cseq) + dauth + "\r\n\r\n") {
-		return false
-	}
-	if status, message := this.Read(); status && strings.Contains(message, "200") {
-		this.track = this.ParseMedia(message)
-		return true
-	}
-	return false
-}
-func (this *RtspClient) AuthDigest_Only(phase string, message string) string {
-	nonce := ParseDirective(message, "nonce")
-	realm := ParseDirective(message, "realm")
-	hs1 := GetMD5Hash(this.login + ":" + realm + ":" + this.password)
-	hs2 := GetMD5Hash(phase + ":" + this.uri)
-	responce := GetMD5Hash(hs1 + ":" + nonce + ":" + hs2)
-	dauth := "\r\n" + `Authorization: Digest username="` + this.login + `", realm="` + realm + `", nonce="` + nonce + `", uri="` + this.uri + `", response="` + responce + `"`
-	return dauth
-}
-func (this *RtspClient) ParseUrl(rtsp_url string) bool {
-
-	u, err := url.Parse(rtsp_url)
-	if err != nil {
-		return false
-	}
-	phost := strings.Split(u.Host, ":")
-	this.host = phost[0]
-	if len(phost) == 2 {
-		this.port = phost[1]
-	} else {
-		this.port = "554"
-	}
-	this.login = u.User.Username()
-	this.password, this.auth = u.User.Password()
-	if u.RawQuery != "" {
-		this.uri = "rtsp://" + this.host + ":" + this.port + u.Path + "?" + string(u.RawQuery)
-	} else {
-		this.uri = "rtsp://" + this.host + ":" + this.port + u.Path
-	}
-	return true
-}
-func (this *RtspClient) Close() {
-	if this.socket != nil {
-		this.socket.Close()
-	}
-}
-func ParseDirective(header, name string) string {
-	index := strings.Index(header, name)
-	if index == -1 {
-		return ""
-	}
-	start := 1 + index + strings.Index(header[index:], `"`)
-	end := start + strings.Index(header[start:], `"`)
-	return strings.TrimSpace(header[start:end])
-}
-func ParseSession(header string) string {
-	mparsed := strings.Split(header, "\r\n")
-	for _, element := range mparsed {
-		if strings.Contains(element, "Session:") {
-			if strings.Contains(element, ";") {
-				fist := strings.Split(element, ";")[0]
-				return fist[9:]
-			} else {
-				return element[9:]
-			}
-		}
-	}
-	return ""
-}
-
-// func ParseMedia(header string) []string {
-// 	letters := []string{}
-// 	mparsed := strings.Split(header, "\r\n")
-// 	paste := ""
-
-// 	// if true {
-// 	// 	log.Println("headers", header)
-// 	// }
-
-// 	for _, element := range mparsed {
-// 		if strings.Contains(element, "a=control:") && !strings.Contains(element, "*") {
-// 			paste = element[10:]
-// 			if strings.Contains(element, "/") {
-// 				striped := strings.Split(element, "/")
-// 				paste = striped[len(striped)-1]
-// 			}
-// 			letters = append(letters, paste)
-// 		}
-
-// 		dimensionsPrefix := "a=x-dimensions:"
-// 		if strings.HasPrefix(element, dimensionsPrefix) {
-// 			dims := []int{}
-// 			for _, s := range strings.Split(element[len(dimensionsPrefix):], ",") {
-// 				v := 0
-// 				fmt.Sscanf(s, "%d", &v)
-// 				if v <= 0 {
-// 					break
-// 				}
-// 				dims = append(dims, v)
-// 			}
-// 			if len(dims) == 2 {
-// 				VideoWidth = dims[0]
-// 				VideoHeight = dims[1]
-// 			}
-// 		}
-// 		if strings.Contains(element, "sprop-parameter-sets") {
-// 			group := spropReg.FindAllStringSubmatch(element, -1)
-// 			log.Println(group[1])
-// 		}
-// 	}
-// 	return letters
-// }
-func GetMD5Hash(text string) string {
-	hash := md5.Sum([]byte(text))
-	return hex.EncodeToString(hash[:])
-}
-func (this *RtspClient) ParseMedia(header string) []string {
-	letters := []string{}
-	log.Println(header)
-	mparsed := strings.Split(header, "\r\n")
-	paste := ""
-	for _, element := range mparsed {
-		if strings.Contains(element, "a=control:") && !strings.Contains(element, "*") {
-			paste = element[10:]
-			if strings.Contains(element, "/") {
-				striped := strings.Split(element, "/")
-				paste = striped[len(striped)-1]
-			}
-			letters = append(letters, paste)
-		}
-
-		dimensionsPrefix := "a=x-dimensions:"
-		if strings.HasPrefix(element, dimensionsPrefix) {
-			dims := []int{}
-			for _, s := range strings.Split(element[len(dimensionsPrefix):], ",") {
-				v := 0
-				fmt.Sscanf(s, "%d", &v)
-				if v <= 0 {
-					break
+		if len(line) == 0 {
+			body := ""
+			if contentLen > 0 {
+				content := make([]byte, contentLen)
+				_, err = io.ReadFull(client.connRW, content)
+				if err != nil {
+					err = fmt.Errorf("Read content err.ContentLength:%d", contentLen)
+					return
 				}
-				dims = append(dims, v)
+				body = string(content)
+				builder.Write(content)
 			}
-			if len(dims) == 2 {
-				this.videow = dims[0]
-				this.videoh = dims[1]
+			resp = NewResponse(statusCode, status, strconv.Itoa(cseq), sid, body)
+			resp.Header = respHeader
+			Printf("<<<[IN]\n%s", builder.String())
+
+			if !(statusCode >= 200 && statusCode <= 300) {
+				err = fmt.Errorf("Response StatusCode is :%d", statusCode)
+				return
+			}
+			return
+		}
+		if lineCount == 0 {
+			splits := strings.Split(s, " ")
+			if len(splits) < 3 {
+				err = fmt.Errorf("StatusCode Line error:%s", s)
+				return
+			}
+			statusCode, err = strconv.Atoi(splits[1])
+			if err != nil {
+				return
+			}
+			status = splits[2]
+		}
+		lineCount++
+		splits := strings.Split(s, ":")
+		if len(splits) == 2 {
+			if val, ok := respHeader[splits[0]]; ok {
+				if slice, ok2 := val.([]string); ok2 {
+					slice = append(slice, strings.TrimSpace(splits[1]))
+					respHeader[splits[0]] = slice
+				} else {
+					str, _ := val.(string)
+					slice := []string{str, strings.TrimSpace(splits[1])}
+					respHeader[splits[0]] = slice
+				}
+			} else {
+				respHeader[splits[0]] = strings.TrimSpace(splits[1])
 			}
 		}
-		group := spropReg.FindAllStringSubmatch(element, -1)
-		if len(group) > 0 {
-			group := strings.Split(group[0][1], ",")
-			this.SPS, _ = b64.StdEncoding.DecodeString(group[0])
-			this.PPS, _ = b64.StdEncoding.DecodeString(group[1])
-		} else if group = configReg.FindAllStringSubmatch(element, -1); len(group) > 0 {
-			this.AudioSpecificConfig, _ = hex.DecodeString(group[0][1])
+		if strings.Index(s, "Session:") == 0 {
+			splits := strings.Split(s, ":")
+			sid = strings.TrimSpace(splits[1])
 		}
+		//if strings.Index(s, "CSeq:") == 0 {
+		//	splits := strings.Split(s, ":")
+		//	cseq, err = strconv.Atoi(strings.TrimSpace(splits[1]))
+		//	if err != nil {
+		//		err = fmt.Errorf("Atoi CSeq err. line:%s", s)
+		//		return
+		//	}
+		//}
+		if strings.Index(s, "Content-Length:") == 0 {
+			splits := strings.Split(s, ":")
+			contentLen, err = strconv.Atoi(strings.TrimSpace(splits[1]))
+			if err != nil {
+				return
+			}
+		}
+
 	}
-	return letters
+	return
 }
