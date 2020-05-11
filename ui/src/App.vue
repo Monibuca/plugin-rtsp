@@ -3,10 +3,14 @@
         <mu-data-table :data="Streams" :columns="columns">
             <template #default="{row:item}">
                 <td>{{item.StreamInfo.StreamPath}}</td>
-                <td><StartTime :value="item.StreamInfo.StartTime"></StartTime></td>
+                <td>
+                    <StartTime :value="item.StreamInfo.StartTime"></StartTime>
+                </td>
                 <td><Progress :stroke-width="20" :percent="Math.ceil(item.BufferRate)" text-inside /></td>
                 <td>{{item.SyncCount}}</td>
-                <td><mu-button flat @click="showHeader(item)">头信息</mu-button></td>
+                <td>
+                    <mu-button flat @click="showHeader(item)">头信息</mu-button>
+                </td>
             </template>
         </mu-data-table>
         <mu-dialog title="拉流转发" width="360" :open.sync="openPull">
@@ -22,9 +26,6 @@
 <script>
 let listES = null;
 export default {
-    components: {
-        StartTime
-    },
     data() {
         return {
             currentStream: null,
@@ -32,7 +33,13 @@ export default {
             remoteAddr: "",
             streamPath: "",
             openPull: false,
-            columns:["StreamPath","开始时间","缓冲","同步数","操作" ].map(title=>({title}))
+            columns: [
+                "StreamPath",
+                "开始时间",
+                "缓冲",
+                "同步数",
+                "操作"
+            ].map(title => ({ title }))
         };
     },
 
@@ -76,14 +83,14 @@ export default {
         let _this = this;
         this.$parent.titleOps = [
             {
-                template:'<m-button @click="onClick">拉流转发</m-button>',
-                methods:{
-                    onClick(){
+                template: '<m-button @click="onClick">拉流转发</m-button>',
+                methods: {
+                    onClick() {
                         _this.openPull = true;
                     }
                 }
             }
-        ]
+        ];
     },
     destroyed() {
         listES.close();

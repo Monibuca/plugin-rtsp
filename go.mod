@@ -3,7 +3,6 @@ module github.com/Monibuca/plugin-rtsp
 go 1.13
 
 require (
-	github.com/EasyDarwin/EasyDarwin v8.1.0+incompatible // indirect
 	github.com/Monibuca/engine/v2 v2.0.0
 	github.com/jinzhu/gorm v1.9.12 // indirect
 	github.com/pixelbender/go-sdp v1.0.0
