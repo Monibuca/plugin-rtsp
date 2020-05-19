@@ -181,16 +181,25 @@ if (typeof window !== 'undefined') {
 // Indicate to webpack that this file can be concatenated
 /* harmony default export */ var setPublicPath = (null);
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"29918b3a-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/App.vue?vue&type=template&id=3ee6bce0&
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"29918b3a-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/App.vue?vue&type=template&id=18f38531&
 var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('mu-data-table',{attrs:{"data":_vm.Streams,"columns":_vm.columns},scopedSlots:_vm._u([{key:"default",fn:function(ref){
 var item = ref.row;
-return [_c('td',[_vm._v(_vm._s(item.StreamInfo.StreamPath))]),_c('td',[_c('StartTime',{attrs:{"value":item.StreamInfo.StartTime}})],1),_c('td',[_c('Progress',{attrs:{"stroke-width":20,"percent":Math.ceil(item.BufferRate),"text-inside":""}})],1),_c('td',[_vm._v(_vm._s(item.SyncCount))]),_c('td',[_c('mu-button',{attrs:{"flat":""},on:{"click":function($event){return _vm.showHeader(item)}}},[_vm._v("头信息")])],1)]}}])}),_c('mu-dialog',{attrs:{"title":"拉流转发","width":"360","open":_vm.openPull},on:{"update:open":function($event){_vm.openPull=$event}}},[_c('mu-text-field',{attrs:{"label":"rtsp url","label-float":"","help-text":"Please enter URL of rtsp..."},model:{value:(_vm.remoteAddr),callback:function ($$v) {_vm.remoteAddr=$$v},expression:"remoteAddr"}}),_c('mu-text-field',{attrs:{"label":"streamPath","label-float":"","help-text":"Please enter streamPath to publish."},model:{value:(_vm.streamPath),callback:function ($$v) {_vm.streamPath=$$v},expression:"streamPath"}}),_c('mu-button',{attrs:{"slot":"actions","flat":"","color":"primary"},on:{"click":_vm.addPull},slot:"actions"},[_vm._v("确定")])],1)],1)}
+return [_c('td',[_vm._v(_vm._s(item.StreamInfo.StreamPath))]),_c('td',[_c('StartTime',{attrs:{"value":item.StreamInfo.StartTime}})],1),_c('td',[_vm._v(_vm._s(item.InBytes))]),_c('td',[_vm._v(_vm._s(item.OutBytes))]),_c('td',[_c('mu-button',{attrs:{"flat":""},on:{"click":function($event){return _vm.showHeader(item)}}},[_vm._v("头信息")]),_c('mu-button',{attrs:{"flat":""},on:{"click":function($event){return _vm.stop(item)}}},[_vm._v("中止")])],1)]}}])}),_c('mu-dialog',{attrs:{"title":"拉流转发","width":"360","open":_vm.openPull},on:{"update:open":function($event){_vm.openPull=$event}}},[_c('mu-text-field',{attrs:{"label":"rtsp url","label-float":"","help-text":"Please enter URL of rtsp..."},model:{value:(_vm.remoteAddr),callback:function ($$v) {_vm.remoteAddr=$$v},expression:"remoteAddr"}}),_c('mu-text-field',{attrs:{"label":"streamPath","label-float":"","help-text":"Please enter streamPath to publish."},model:{value:(_vm.streamPath),callback:function ($$v) {_vm.streamPath=$$v},expression:"streamPath"}}),_c('mu-button',{attrs:{"slot":"actions","flat":"","color":"primary"},on:{"click":_vm.addPull},slot:"actions"},[_vm._v("确定")])],1)],1)}
 var staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/App.vue?vue&type=template&id=3ee6bce0&
+// CONCATENATED MODULE: ./src/App.vue?vue&type=template&id=18f38531&
 
 // CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/App.vue?vue&type=script&lang=js&
+//
+//
+//
+//
+//
+//
+//
+//
+//
 //
 //
 //
@@ -219,75 +228,88 @@ var staticRenderFns = []
 
 let listES = null;
 /* harmony default export */ var Appvue_type_script_lang_js_ = ({
-    data() {
-        return {
-            currentStream: null,
-            Streams: null,
-            remoteAddr: "",
-            streamPath: "",
-            openPull: false,
-            columns: [
-                "StreamPath",
-                "开始时间",
-                "缓冲",
-                "同步数",
-                "操作"
-            ].map(title => ({ title }))
-        };
-    },
+  data() {
+    return {
+      currentStream: null,
+      Streams: null,
+      remoteAddr: "",
+      streamPath: "",
+      openPull: false,
+      columns: [
+        "StreamPath",
+        "开始时间",
+        "总接收",
+        "总发送",
+        "操作"
+      ].map(title => ({ title }))
+    };
+  },
 
-    methods: {
-        fetchlist() {
-            listES = new EventSource(this.apiHost + "/rtsp/list");
-            listES.onmessage = evt => {
-                if (!evt.data) return;
-                this.Streams = JSON.parse(evt.data) || [];
-                this.Streams.sort((a, b) =>
-                    a.StreamInfo.StreamPath > b.StreamInfo.StreamPath ? 1 : -1
-                );
-            };
-        },
-        showHeader(item) {
-            this.$Modal.info({
-                title: "RTSP Header",
-                width: "1000px",
-                scrollable: true,
-                content: item.Header
-            });
-        },
-        addPull() {
-            this.openPull = false;
-            this.ajax
-                .getJSON(this.apiHost + "/rtsp/pull", {
-                    target: this.remoteAddr,
-                    streamPath: this.streamPath
-                })
-                .then(x => {
-                    if (x.code == 0) {
-                        this.$toast.success("已启动拉流");
-                    } else {
-                        this.$toast.error(x.msg);
-                    }
-                });
-        }
+  methods: {
+    fetchlist() {
+      listES = new EventSource(this.apiHost + "/rtsp/list");
+      listES.onmessage = evt => {
+        if (!evt.data) return;
+        this.Streams = JSON.parse(evt.data) || [];
+        this.Streams.sort((a, b) =>
+          a.StreamInfo.StreamPath > b.StreamInfo.StreamPath ? 1 : -1
+        );
+      };
     },
-    mounted() {
-        this.fetchlist();
-        let _this = this;
-        this.$parent.titleOps = [
-            {
-                template: '<m-button @click="onClick">拉流转发</m-button>',
-                methods: {
-                    onClick() {
-                        _this.openPull = true;
-                    }
-                }
-            }
-        ];
+    showHeader(item) {
+      this.$Modal.info({
+        title: "RTSP Header",
+        width: "1000px",
+        scrollable: true,
+        content: item.Header
+      });
     },
-    destroyed() {
-        listES.close();
+    addPull() {
+      this.openPull = false;
+      this.ajax
+        .getJSON(this.apiHost + "/rtsp/pull", {
+          target: this.remoteAddr,
+          streamPath: this.streamPath
+        })
+        .then(x => {
+          if (x.code == 0) {
+            this.$toast.success("已启动拉流");
+          } else {
+            this.$toast.error(x.msg);
+          }
+        });
+    },
+    stop(item) {
+      this.ajax
+        .get(this.apiHost + "/api/stop", {
+          stream: this.streamPath
+        })
+        .then(x => {
+          if (x == "success") {
+            this.$toast.success("已停止拉流");
+          } else {
+            this.$toast.error(x.msg);
+          }
+        });
     }
+  },
+  mounted() {
+    this.fetchlist();
+    let _this = this;
+    this.$parent.titleOps = [
+      {
+        template: '<m-button @click="onClick">拉流转发</m-button>',
+        methods: {
+          onClick() {
+            _this.openPull = true;
+          }
+        }
+      }
+    ];
+  },
+  destroyed() {
+    listES.close();
+  }
 });
 
 // CONCATENATED MODULE: ./src/App.vue?vue&type=script&lang=js&

@@ -4,6 +4,9 @@ go 1.13
 
 require (
 	github.com/Monibuca/engine/v2 v2.0.0
+	github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee // indirect
+	github.com/gobwas/pool v0.2.0 // indirect
+	github.com/gobwas/ws v1.0.3 // indirect
 	github.com/jinzhu/gorm v1.9.12 // indirect
 	github.com/pixelbender/go-sdp v1.0.0
 	github.com/reactivex/rxgo v1.0.0 // indirect

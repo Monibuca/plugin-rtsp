@@ -14,18 +14,16 @@ import (
 	. "github.com/Monibuca/engine/v2"
 	. "github.com/Monibuca/engine/v2/avformat"
 	"github.com/Monibuca/engine/v2/util"
-	"github.com/pixelbender/go-sdp/sdp"
 	"github.com/teris-io/shortid"
 )
 
 var collection = sync.Map{}
 var config = struct {
-	ListenAddr   string
-	BufferLength int
-	AutoPull     bool
-	RemoteAddr   string
-	Timeout      int
-}{":554", 2048, true, "rtsp://localhost/${streamPath}", 0}
+	ListenAddr string
+	AutoPull   bool
+	RemoteAddr string
+	Timeout    int
+}{":554", false, "rtsp://localhost/${streamPath}", 0}
 
 func init() {
 	InstallPlugin(&PluginConfig{
@@ -54,7 +52,6 @@ func runPlugin() {
 			collection.Range(func(key, value interface{}) bool {
 				rtsp := value.(*RTSP)
 				pinfo := &rtsp.RTSPInfo
-				//pinfo.BufferRate = len(rtsp.OutGoing) * 100 / config.BufferLength
 				info = append(info, pinfo)
 				return true
 			})
@@ -158,19 +155,17 @@ type RTSP struct {
 	Auth                func(string) string
 }
 type RTSPClientInfo struct {
-	Agent     string
-	Session   string
-	Sdp       *sdp.Session
-	authLine  string
-	Seq       int
+	Agent    string
+	Session  string
+	authLine string
+	Seq      int
 }
 type RTSPInfo struct {
-	URL        string
-	SyncCount  int64
-	Header     *string
-	BufferRate int
-	InBytes    int
-	OutBytes   int
+	URL       string
+	SyncCount int64
+	Header    *string
+	InBytes   int
+	OutBytes  int
 
 	StreamInfo *StreamInfo
 }
