@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -18,8 +19,8 @@ import (
 )
 
 // PullStream 从外部拉流
-func (rtsp *RTSP) PullStream(streamPath string, rtspUrl string) (result bool) {
-	if result = rtsp.Publisher.Publish(streamPath); result {
+func (rtsp *RTSP) PullStream(streamPath string, rtspUrl string) (err error) {
+	if result := rtsp.Publisher.Publish(streamPath); result {
 		rtsp.Stream.Type = "RTSP"
 		rtsp.RTSPInfo.StreamInfo = &rtsp.Stream.StreamInfo
 		rtsp.TransType = TRANS_TYPE_TCP
@@ -28,15 +29,16 @@ func (rtsp *RTSP) PullStream(streamPath string, rtspUrl string) (result bool) {
 		rtsp.aRTPChannel = 2
 		rtsp.aRTPControlChannel = 3
 		rtsp.URL = rtspUrl
-		if err := rtsp.requestStream(); err != nil {
+		if err = rtsp.requestStream(); err != nil {
+			Println(err)
 			rtsp.Close()
-			return false
+			return
 		}
 		go rtsp.startStream()
 		collection.Store(streamPath, rtsp)
-		// 	go rtsp.run()
+		return
 	}
-	return
+	return errors.New("publish badname")
 }
 func DigestAuth(authLine string, method string, URL string) (string, error) {
 	l, err := url.Parse(URL)
@@ -271,7 +273,7 @@ func (client *RTSP) startStream() {
 	//startTime := time.Now()
 	//loggerTime := time.Now().Add(-10 * time.Second)
 	defer client.Stop()
-	for {
+	for client.Err() == nil {
 		//if client.OptionIntervalMillis > 0 {
 		//	if time.Since(startTime) > time.Duration(client.OptionIntervalMillis)*time.Millisecond {
 		//		startTime = time.Now()
@@ -361,7 +363,7 @@ func (client *RTSP) startStream() {
 			builder := bytes.Buffer{}
 			builder.WriteByte(b)
 			contentLen := 0
-			for {
+			for client.Err() == nil {
 				line, prefix, err := client.connRW.ReadLine()
 				if err != nil {
 					Printf("client.connRW.ReadLine err:%v", err)

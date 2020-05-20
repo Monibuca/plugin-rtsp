@@ -61,9 +61,7 @@ func runPlugin() {
 	http.HandleFunc("/rtsp/pull", func(w http.ResponseWriter, r *http.Request) {
 		targetURL := r.URL.Query().Get("target")
 		streamPath := r.URL.Query().Get("streamPath")
-		var err error
-		if err == nil {
-			new(RTSP).PullStream(streamPath, targetURL)
+		if err := new(RTSP).PullStream(streamPath, targetURL); err == nil {
 			w.Write([]byte(`{"code":0}`))
 		} else {
 			w.Write([]byte(fmt.Sprintf(`{"code":1,"msg":"%s"}`, err.Error())))
@@ -129,17 +127,17 @@ type RTSP struct {
 	connWLock sync.RWMutex
 	Type      SessionType
 	TransType TransType
-	SDPRaw    string
-	SDPMap    map[string]*SDPInfo
-	nonce     string
-	closeOld  bool
-	AControl  string
-	VControl  string
-	ACodec    string
-	VCodec    string
-	avcsent   bool
-	aacsent   bool
-	Timeout   int
+
+	SDPMap   map[string]*SDPInfo
+	nonce    string
+	closeOld bool
+	AControl string
+	VControl string
+	ACodec   string
+	VCodec   string
+	avcsent  bool
+	aacsent  bool
+	Timeout  int
 	// stats info
 	fuBuffer []byte
 	//tcp channels
@@ -163,7 +161,7 @@ type RTSPClientInfo struct {
 type RTSPInfo struct {
 	URL       string
 	SyncCount int64
-	Header    *string
+	SDPRaw    string
 	InBytes   int
 	OutBytes  int
 

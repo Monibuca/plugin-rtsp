@@ -6,8 +6,8 @@
         <td>
           <StartTime :value="item.StreamInfo.StartTime"></StartTime>
         </td>
-        <td>{{item.InBytes}}</td>
-        <td>{{item.OutBytes}}</td>
+        <td>{{unitFormat(item.InBytes)}}</td>
+        <td>{{unitFormat(item.OutBytes)}}</td>
         <td>
           <mu-button flat @click="showHeader(item)">头信息</mu-button>
           <mu-button flat @click="stop(item)">中止</mu-button>
@@ -65,10 +65,10 @@ export default {
     },
     showHeader(item) {
       this.$Modal.info({
-        title: "RTSP Header",
+        title: "RTSP SDPRaw",
         width: "1000px",
         scrollable: true,
-        content: item.Header
+        content: item.SDPRaw
       });
     },
     addPull() {

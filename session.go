@@ -99,8 +99,10 @@ func (session *RTSP) Stop() {
 		session.UDPServer = nil
 	}
 	if session.Running() {
-		collection.Delete(session.StreamPath)
 		session.Cancel()
+	}
+	if session.Stream != nil {
+		collection.Delete(session.StreamPath)
 	}
 }
 
@@ -350,7 +352,7 @@ func (session *RTSP) handleRequest(req *Request) {
 			res.Status = "Invalid URL"
 			return
 		}
-		streamPath := strings.TrimPrefix(url.Path,"/")
+		streamPath := strings.TrimPrefix(url.Path, "/")
 
 		session.SDPRaw = req.Body
 		session.SDPMap = ParseSDP(req.Body)
@@ -361,7 +363,7 @@ func (session *RTSP) handleRequest(req *Request) {
 			session.AudioSpecificConfig = sdp.Config
 			Printf("audio codec[%s]\n", session.ACodec)
 		}
-		if sdp, ok = session.SDPMap["video"];ok {
+		if sdp, ok = session.SDPMap["video"]; ok {
 			session.VControl = sdp.Control
 			session.VCodec = sdp.Codec
 			session.SPS = sdp.SpropParameterSets[0]
