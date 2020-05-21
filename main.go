@@ -234,15 +234,17 @@ func (rtsp *RTSP) handleNALU(nalType byte, payload []byte, ts int64) {
 		r.Write(payload)
 		rtsp.PushVideo(uint32(ts), r.Bytes())
 	case NALU_Non_IDR_Picture:
-		r := bytes.NewBuffer([]byte{})
-		pframeHead := []byte{0x27, 0x01, 0, 0, 0}
-		util.BigEndian.PutUint24(pframeHead[2:], 0)
-		r.Write(pframeHead)
-		nalLength := []byte{0, 0, 0, 0}
-		util.BigEndian.PutUint32(nalLength, uint32(vl))
-		r.Write(nalLength)
-		r.Write(payload)
-		rtsp.PushVideo(uint32(ts), r.Bytes())
+		if rtsp.avcsent {
+			r := bytes.NewBuffer([]byte{})
+			pframeHead := []byte{0x27, 0x01, 0, 0, 0}
+			util.BigEndian.PutUint24(pframeHead[2:], 0)
+			r.Write(pframeHead)
+			nalLength := []byte{0, 0, 0, 0}
+			util.BigEndian.PutUint32(nalLength, uint32(vl))
+			r.Write(nalLength)
+			r.Write(payload)
+			rtsp.PushVideo(uint32(ts), r.Bytes())
+		}
 	}
 }
 func (rtsp *RTSP) handleRTP(pack *RTPPack) {
