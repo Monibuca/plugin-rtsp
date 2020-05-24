@@ -192,25 +192,21 @@ func (conn *RichConn) Write(b []byte) (n int, err error) {
 	}
 	return conn.Conn.Write(b)
 }
-func (rtsp *RTSP) handleNALU(nalType byte, payload []byte, ts int64) {
+func (rtsp *RTSP) handleNALU(nalType byte, payload []byte, ts uint32) {
 	rtsp.SyncCount++
 	vl := len(payload)
 	switch nalType {
-	// case NALU_SPS:
-	// 	r := bytes.NewBuffer([]byte{})
-	// 	r.Write(RTMP_AVC_HEAD)
-	// 	util.BigEndian.PutUint16(spsHead[1:], uint16(vl))
-	// 	r.Write(spsHead)
-	// 	r.Write(payload)
-	// case NALU_PPS:
-	// 	r := bytes.NewBuffer([]byte{})
-	// 	util.BigEndian.PutUint16(ppsHead[1:], uint16(vl))
-	// 	r.Write(ppsHead)
-	// 	r.Write(payload)
-	// 	rtsp.PushVideo(0, r.Bytes())
-	// avcsent = true
+	case NALU_SPS:
+		rtsp.SPS = append([]byte{}, payload...)
+	case NALU_PPS:
+		rtsp.PPS = append([]byte{}, payload...)
+	case NALU_Access_Unit_Delimiter:
+
 	case NALU_IDR_Picture:
 		if !rtsp.avcsent {
+			if rtsp.SPS == nil || rtsp.PPS == nil {
+				break
+			}
 			r := bytes.NewBuffer([]byte{})
 			r.Write(RTMP_AVC_HEAD)
 			spsHead := []byte{0xE1, 0, 0}
@@ -224,7 +220,7 @@ func (rtsp *RTSP) handleNALU(nalType byte, payload []byte, ts int64) {
 			rtsp.PushVideo(0, r.Bytes())
 			rtsp.avcsent = true
 		}
-		r := bytes.NewBuffer([]byte{})
+		r := rtsp.GetBuffer()
 		iframeHead := []byte{0x17, 0x01, 0, 0, 0}
 		util.BigEndian.PutUint24(iframeHead[2:], 0)
 		r.Write(iframeHead)
@@ -232,10 +228,10 @@ func (rtsp *RTSP) handleNALU(nalType byte, payload []byte, ts int64) {
 		util.BigEndian.PutUint32(nalLength, uint32(vl))
 		r.Write(nalLength)
 		r.Write(payload)
-		rtsp.PushVideo(uint32(ts), r.Bytes())
+		rtsp.PushVideo(ts, r.Bytes())
 	case NALU_Non_IDR_Picture:
 		if rtsp.avcsent {
-			r := bytes.NewBuffer([]byte{})
+			r := rtsp.GetBuffer()
 			pframeHead := []byte{0x27, 0x01, 0, 0, 0}
 			util.BigEndian.PutUint24(pframeHead[2:], 0)
 			r.Write(pframeHead)
@@ -243,21 +239,21 @@ func (rtsp *RTSP) handleNALU(nalType byte, payload []byte, ts int64) {
 			util.BigEndian.PutUint32(nalLength, uint32(vl))
 			r.Write(nalLength)
 			r.Write(payload)
-			rtsp.PushVideo(uint32(ts), r.Bytes())
+			rtsp.PushVideo(ts, r.Bytes())
 		}
+	default:
+		Println(nalType)
 	}
+
 }
-func (rtsp *RTSP) handleRTP(pack *RTPPack) {
-	data := pack.Buffer
+func (rtsp *RTSP) HandleRTP(pack *RTPPack) {
 	switch pack.Type {
 	case RTP_TYPE_AUDIO:
 		if !rtsp.aacsent {
 			rtsp.PushAudio(0, append([]byte{0xAF, 0x00}, rtsp.AudioSpecificConfig...))
 			rtsp.aacsent = true
 		}
-		cc := data[0] & 0xF
-		rtphdr := 12 + cc*4
-		payload := data[rtphdr:]
+		payload := pack.Payload
 		auHeaderLen := (int16(payload[0]) << 8) + int16(payload[1])
 		auHeaderLen = auHeaderLen >> 3
 		auHeaderCount := int(auHeaderLen / 2)
@@ -275,21 +271,13 @@ func (rtsp *RTSP) handleRTP(pack *RTPPack) {
 			startOffset = startOffset + auLen
 		}
 	case RTP_TYPE_VIDEO:
-		cc := data[0] & 0xF
-		//rtp header
-		rtphdr := 12 + cc*4
-
-		//packet time
-		ts := (int64(data[4]) << 24) + (int64(data[5]) << 16) + (int64(data[6]) << 8) + (int64(data[7]))
-
-		//packet number
-		//packno := (int64(data[6]) << 8) + int64(data[7])
-		data = data[rtphdr:]
+		ts := pack.Timestamp
+		data := pack.Payload
+		Println(len(data))
 		nalType := data[0] & 0x1F
-
 		if nalType >= 1 && nalType <= 23 {
 			rtsp.handleNALU(nalType, data, ts)
-		} else if nalType == 28 {
+		} else if nalType == 28 { //FU-A
 			isStart := data[1]&0x80 != 0
 			isEnd := data[1]&0x40 != 0
 			nalType := data[1] & 0x1F
@@ -303,6 +291,15 @@ func (rtsp *RTSP) handleRTP(pack *RTPPack) {
 				rtsp.fuBuffer[0] = nal
 				rtsp.handleNALU(nalType, rtsp.fuBuffer, ts)
 			}
+		} else if nalType == 24 { //STAP-A
+			var naluLen uint16
+			for data = data[1:]; len(data) > 3; data = data[naluLen+2:] {
+				naluLen = (uint16(data[0]) << 8) + uint16(data[1])
+				nalType = data[2] & 0x1F
+				rtsp.handleNALU(nalType, data[3:naluLen+2], ts)
+			}
+		} else {
+			Println("not support yet ", nalType)
 		}
 	}
 }

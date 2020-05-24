@@ -13,12 +13,13 @@ import (
 	"time"
 
 	. "github.com/Monibuca/engine/v2"
+	"github.com/pion/rtp"
 	"github.com/teris-io/shortid"
 )
 
 type RTPPack struct {
-	Type   RTPType
-	Buffer []byte
+	Type RTPType
+	rtp.Packet
 }
 
 type SessionType int
@@ -128,53 +129,41 @@ func (session *RTSP) AcceptPush() {
 			}
 			channel := int(buf1)
 			rtpLen := int(binary.BigEndian.Uint16(buf2))
+			pack := new(RTPPack)
 			rtpBytes := make([]byte, rtpLen)
 			if _, err := io.ReadFull(session.connRW, rtpBytes); err != nil {
 				Println(err)
 				return
 			}
-			var pack *RTPPack
+			if err = pack.Unmarshal(rtpBytes); err != nil {
+				Println(err)
+				return
+			}
 			switch channel {
 			case session.aRTPChannel:
-				pack = &RTPPack{
-					Type:   RTP_TYPE_AUDIO,
-					Buffer: rtpBytes,
-				}
+				pack.Type = RTP_TYPE_AUDIO
 				elapsed := time.Now().Sub(timer)
 				if elapsed >= 30*time.Second {
 					Println("Recv an audio RTP package")
 					timer = time.Now()
 				}
 			case session.aRTPControlChannel:
-				pack = &RTPPack{
-					Type:   RTP_TYPE_AUDIOCONTROL,
-					Buffer: rtpBytes,
-				}
+				pack.Type = RTP_TYPE_AUDIOCONTROL
 			case session.vRTPChannel:
-				pack = &RTPPack{
-					Type:   RTP_TYPE_VIDEO,
-					Buffer: rtpBytes,
-				}
+				pack.Type = RTP_TYPE_VIDEO
 				elapsed := time.Now().Sub(timer)
 				if elapsed >= 30*time.Second {
 					Println("Recv an video RTP package")
 					timer = time.Now()
 				}
 			case session.vRTPControlChannel:
-				pack = &RTPPack{
-					Type:   RTP_TYPE_VIDEOCONTROL,
-					Buffer: rtpBytes,
-				}
+				pack.Type = RTP_TYPE_VIDEOCONTROL
 			default:
 				Printf("unknow rtp pack type, %v", pack.Type)
 				continue
 			}
-			if pack == nil {
-				Printf("session tcp got nil rtp pack")
-				continue
-			}
 			session.InBytes += rtpLen + 4
-			session.handleRTP(pack)
+			session.HandleRTP(pack)
 		} else { // rtsp cmd
 			reqBuf := bytes.NewBuffer(nil)
 			reqBuf.WriteByte(buf1)
@@ -577,7 +566,7 @@ func (session *RTSP) SendRTP(pack *RTPPack) (err error) {
 			return
 		}
 		err = session.UDPClient.SendRTP(pack)
-		session.OutBytes += len(pack.Buffer)
+		session.OutBytes += len(pack.Raw)
 		return
 	}
 	switch pack.Type {
@@ -588,12 +577,12 @@ func (session *RTSP) SendRTP(pack *RTPPack) (err error) {
 		session.connWLock.Lock()
 		session.connRW.Write(bufChannel)
 		bufLen := make([]byte, 2)
-		binary.BigEndian.PutUint16(bufLen, uint16(len(pack.Buffer)))
+		binary.BigEndian.PutUint16(bufLen, uint16(len(pack.Raw)))
 		session.connRW.Write(bufLen)
-		session.connRW.Write(pack.Buffer)
+		session.connRW.Write(pack.Raw)
 		session.connRW.Flush()
 		session.connWLock.Unlock()
-		session.OutBytes += len(pack.Buffer) + 4
+		session.OutBytes += len(pack.Raw) + 4
 	case RTP_TYPE_AUDIOCONTROL:
 		bufChannel := make([]byte, 2)
 		bufChannel[0] = 0x24
@@ -601,12 +590,12 @@ func (session *RTSP) SendRTP(pack *RTPPack) (err error) {
 		session.connWLock.Lock()
 		session.connRW.Write(bufChannel)
 		bufLen := make([]byte, 2)
-		binary.BigEndian.PutUint16(bufLen, uint16(len(pack.Buffer)))
+		binary.BigEndian.PutUint16(bufLen, uint16(len(pack.Raw)))
 		session.connRW.Write(bufLen)
-		session.connRW.Write(pack.Buffer)
+		session.connRW.Write(pack.Raw)
 		session.connRW.Flush()
 		session.connWLock.Unlock()
-		session.OutBytes += len(pack.Buffer) + 4
+		session.OutBytes += len(pack.Raw) + 4
 	case RTP_TYPE_VIDEO:
 		bufChannel := make([]byte, 2)
 		bufChannel[0] = 0x24
@@ -614,12 +603,12 @@ func (session *RTSP) SendRTP(pack *RTPPack) (err error) {
 		session.connWLock.Lock()
 		session.connRW.Write(bufChannel)
 		bufLen := make([]byte, 2)
-		binary.BigEndian.PutUint16(bufLen, uint16(len(pack.Buffer)))
+		binary.BigEndian.PutUint16(bufLen, uint16(len(pack.Raw)))
 		session.connRW.Write(bufLen)
-		session.connRW.Write(pack.Buffer)
+		session.connRW.Write(pack.Raw)
 		session.connRW.Flush()
 		session.connWLock.Unlock()
-		session.OutBytes += len(pack.Buffer) + 4
+		session.OutBytes += len(pack.Raw) + 4
 	case RTP_TYPE_VIDEOCONTROL:
 		bufChannel := make([]byte, 2)
 		bufChannel[0] = 0x24
@@ -627,12 +616,12 @@ func (session *RTSP) SendRTP(pack *RTPPack) (err error) {
 		session.connWLock.Lock()
 		session.connRW.Write(bufChannel)
 		bufLen := make([]byte, 2)
-		binary.BigEndian.PutUint16(bufLen, uint16(len(pack.Buffer)))
+		binary.BigEndian.PutUint16(bufLen, uint16(len(pack.Raw)))
 		session.connRW.Write(bufLen)
-		session.connRW.Write(pack.Buffer)
+		session.connRW.Write(pack.Raw)
 		session.connRW.Flush()
 		session.connWLock.Unlock()
-		session.OutBytes += len(pack.Buffer) + 4
+		session.OutBytes += len(pack.Raw) + 4
 	default:
 		err = fmt.Errorf("session tcp send rtp got unkown pack type[%v]", pack.Type)
 	}

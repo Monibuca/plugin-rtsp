@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+
 	. "github.com/Monibuca/engine/v2"
 )
 
@@ -151,7 +152,7 @@ func (c *UDPClient) SendRTP(pack *RTPPack) (err error) {
 		return
 	}
 
-	if _, err = conn.Write(pack.Buffer);err != nil {
+	if _, err = conn.Write(pack.Raw); err != nil {
 		err = fmt.Errorf("udp client write bytes error, %v", err)
 		return
 	}

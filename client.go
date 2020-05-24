@@ -307,38 +307,30 @@ func (client *RTSP) startStream() {
 				Printf("io.ReadFull err:%v", err)
 				return
 			}
-			rtpBuf := content
 			var pack *RTPPack
+
 			switch channel {
 			case client.aRTPChannel:
 				pack = &RTPPack{
-					Type:   RTP_TYPE_AUDIO,
-					Buffer: rtpBuf,
+					Type: RTP_TYPE_AUDIO,
 				}
 			case client.aRTPControlChannel:
 				pack = &RTPPack{
-					Type:   RTP_TYPE_AUDIOCONTROL,
-					Buffer: rtpBuf,
+					Type: RTP_TYPE_AUDIOCONTROL,
 				}
 			case client.vRTPChannel:
 				pack = &RTPPack{
-					Type:   RTP_TYPE_VIDEO,
-					Buffer: rtpBuf,
+					Type: RTP_TYPE_VIDEO,
 				}
 			case client.vRTPControlChannel:
 				pack = &RTPPack{
-					Type:   RTP_TYPE_VIDEOCONTROL,
-					Buffer: rtpBuf,
+					Type: RTP_TYPE_VIDEOCONTROL,
 				}
 			default:
 				Printf("unknow rtp pack type, channel:%v", channel)
 				continue
 			}
-			if pack == nil {
-				Printf("session tcp got nil rtp pack")
-				continue
-			}
-
+			pack.Unmarshal(content)
 			//if client.debugLogEnable {
 			//	rtp := ParseRTP(pack.Buffer)
 			//	if rtp != nil {
@@ -357,7 +349,7 @@ func (client *RTSP) startStream() {
 			//}
 
 			client.InBytes += int(length + 4)
-			client.handleRTP(pack)
+			client.HandleRTP(pack)
 
 		default: // rtsp
 			builder := bytes.Buffer{}

@@ -12,7 +12,7 @@ import (
 )
 
 type UDPServer struct {
-	Session    *RTSP
+	Session *RTSP
 	UDPClient
 	sync.Mutex
 }
@@ -29,7 +29,7 @@ func (s *UDPServer) HandleRTP(pack *RTPPack) {
 	s.Lock()
 	defer s.Unlock()
 	if s.Session != nil {
-		s.Session.handleRTP(pack)
+		s.Session.HandleRTP(pack)
 	}
 }
 
@@ -90,13 +90,11 @@ func (s *UDPServer) SetupAudio() (err error) {
 					Printf("Package recv from AConn.len:%d\n", n)
 					timer = time.Now()
 				}
-				rtpBytes := make([]byte, n)
 				s.AddInputBytes(n)
-				copy(rtpBytes, bufUDP)
 				pack := &RTPPack{
-					Type:   RTP_TYPE_AUDIO,
-					Buffer: rtpBytes,
+					Type: RTP_TYPE_AUDIO,
 				}
+				pack.Unmarshal(bufUDP)
 				s.HandleRTP(pack)
 			} else {
 				Println("udp server read audio pack error", err)
@@ -131,13 +129,11 @@ func (s *UDPServer) SetupAudio() (err error) {
 		for !s.Stoped {
 			if n, _, err := s.AControlConn.ReadFromUDP(bufUDP); err == nil {
 				//Printf("Package recv from AControlConn.len:%d\n", n)
-				rtpBytes := make([]byte, n)
 				s.AddInputBytes(n)
-				copy(rtpBytes, bufUDP)
 				pack := &RTPPack{
-					Type:   RTP_TYPE_AUDIOCONTROL,
-					Buffer: rtpBytes,
+					Type: RTP_TYPE_AUDIOCONTROL,
 				}
+				pack.Unmarshal(bufUDP)
 				s.HandleRTP(pack)
 			} else {
 				Println("udp server read audio control pack error", err)
@@ -182,13 +178,11 @@ func (s *UDPServer) SetupVideo() (err error) {
 					Printf("Package recv from VConn.len:%d\n", n)
 					timer = time.Now()
 				}
-				rtpBytes := make([]byte, n)
 				s.AddInputBytes(n)
-				copy(rtpBytes, bufUDP)
 				pack := &RTPPack{
-					Type:   RTP_TYPE_VIDEO,
-					Buffer: rtpBytes,
+					Type: RTP_TYPE_VIDEO,
 				}
+				pack.Unmarshal(bufUDP)
 				s.HandleRTP(pack)
 			} else {
 				Println("udp server read video pack error", err)
@@ -224,13 +218,11 @@ func (s *UDPServer) SetupVideo() (err error) {
 		for !s.Stoped {
 			if n, _, err := s.VControlConn.ReadFromUDP(bufUDP); err == nil {
 				//Printf("Package recv from VControlConn.len:%d\n", n)
-				rtpBytes := make([]byte, n)
 				s.AddInputBytes(n)
-				copy(rtpBytes, bufUDP)
 				pack := &RTPPack{
-					Type:   RTP_TYPE_VIDEOCONTROL,
-					Buffer: rtpBytes,
+					Type: RTP_TYPE_VIDEOCONTROL,
 				}
+				pack.Unmarshal(bufUDP)
 				s.HandleRTP(pack)
 			} else {
 				Println("udp server read video control pack error", err)
