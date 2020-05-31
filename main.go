@@ -2,7 +2,6 @@ package rtsp
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"log"
 	"net"
@@ -12,12 +11,12 @@ import (
 	"time"
 
 	. "github.com/Monibuca/engine/v2"
-	. "github.com/Monibuca/engine/v2/avformat"
 	"github.com/Monibuca/engine/v2/util"
+	. "github.com/Monibuca/plugin-rtp"
 	"github.com/teris-io/shortid"
 )
 
-var collection = sync.Map{}
+var collection sync.Map
 var config = struct {
 	ListenAddr string
 	AutoPull   bool
@@ -118,7 +117,7 @@ func ListenRtsp(addr string) error {
 }
 
 type RTSP struct {
-	Publisher
+	RTP
 	RTSPInfo
 	RTSPClientInfo
 	ID        string
@@ -135,22 +134,16 @@ type RTSP struct {
 	VControl string
 	ACodec   string
 	VCodec   string
-	avcsent  bool
 	aacsent  bool
 	Timeout  int
-	// stats info
-	fuBuffer []byte
 	//tcp channels
-	aRTPChannel         int
-	aRTPControlChannel  int
-	vRTPChannel         int
-	vRTPControlChannel  int
-	UDPServer           *UDPServer
-	UDPClient           *UDPClient
-	SPS                 []byte
-	PPS                 []byte
-	AudioSpecificConfig []byte
-	Auth                func(string) string
+	aRTPChannel        int
+	aRTPControlChannel int
+	vRTPChannel        int
+	vRTPControlChannel int
+	UDPServer          *UDPServer
+	UDPClient          *UDPClient
+	Auth               func(string) string
 }
 type RTSPClientInfo struct {
 	Agent    string
@@ -159,12 +152,10 @@ type RTSPClientInfo struct {
 	Seq      int
 }
 type RTSPInfo struct {
-	URL       string
-	SyncCount int64
-	SDPRaw    string
-	InBytes   int
-	OutBytes  int
-
+	URL        string
+	SDPRaw     string
+	InBytes    int
+	OutBytes   int
 	StreamInfo *StreamInfo
 }
 
@@ -191,115 +182,4 @@ func (conn *RichConn) Write(b []byte) (n int, err error) {
 		conn.Conn.SetWriteDeadline(t)
 	}
 	return conn.Conn.Write(b)
-}
-func (rtsp *RTSP) handleNALU(nalType byte, payload []byte, ts uint32) {
-	rtsp.SyncCount++
-	vl := len(payload)
-	switch nalType {
-	case NALU_SPS:
-		rtsp.SPS = append([]byte{}, payload...)
-	case NALU_PPS:
-		rtsp.PPS = append([]byte{}, payload...)
-	case NALU_Access_Unit_Delimiter:
-
-	case NALU_IDR_Picture:
-		if !rtsp.avcsent {
-			if rtsp.SPS == nil || rtsp.PPS == nil {
-				break
-			}
-			r := bytes.NewBuffer([]byte{})
-			r.Write(RTMP_AVC_HEAD)
-			spsHead := []byte{0xE1, 0, 0}
-			util.BigEndian.PutUint16(spsHead[1:], uint16(len(rtsp.SPS)))
-			r.Write(spsHead)
-			r.Write(rtsp.SPS)
-			ppsHead := []byte{0x01, 0, 0}
-			util.BigEndian.PutUint16(ppsHead[1:], uint16(len(rtsp.PPS)))
-			r.Write(ppsHead)
-			r.Write(rtsp.PPS)
-			rtsp.PushVideo(0, r.Bytes())
-			rtsp.avcsent = true
-		}
-		r := rtsp.GetBuffer()
-		iframeHead := []byte{0x17, 0x01, 0, 0, 0}
-		util.BigEndian.PutUint24(iframeHead[2:], 0)
-		r.Write(iframeHead)
-		nalLength := []byte{0, 0, 0, 0}
-		util.BigEndian.PutUint32(nalLength, uint32(vl))
-		r.Write(nalLength)
-		r.Write(payload)
-		rtsp.PushVideo(ts, r.Bytes())
-	case NALU_Non_IDR_Picture:
-		if rtsp.avcsent {
-			r := rtsp.GetBuffer()
-			pframeHead := []byte{0x27, 0x01, 0, 0, 0}
-			util.BigEndian.PutUint24(pframeHead[2:], 0)
-			r.Write(pframeHead)
-			nalLength := []byte{0, 0, 0, 0}
-			util.BigEndian.PutUint32(nalLength, uint32(vl))
-			r.Write(nalLength)
-			r.Write(payload)
-			rtsp.PushVideo(ts, r.Bytes())
-		}
-	default:
-		Println(nalType)
-	}
-
-}
-func (rtsp *RTSP) HandleRTP(pack *RTPPack) {
-	switch pack.Type {
-	case RTP_TYPE_AUDIO:
-		if !rtsp.aacsent {
-			rtsp.PushAudio(0, append([]byte{0xAF, 0x00}, rtsp.AudioSpecificConfig...))
-			rtsp.aacsent = true
-		}
-		payload := pack.Payload
-		auHeaderLen := (int16(payload[0]) << 8) + int16(payload[1])
-		auHeaderLen = auHeaderLen >> 3
-		auHeaderCount := int(auHeaderLen / 2)
-		var auLenArray []int
-		for iIndex := 0; iIndex < int(auHeaderCount); iIndex++ {
-			auHeaderInfo := (int16(payload[2+2*iIndex]) << 8) + int16(payload[2+2*iIndex+1])
-			auLen := auHeaderInfo >> 3
-			auLenArray = append(auLenArray, int(auLen))
-		}
-		startOffset := 2 + 2*auHeaderCount
-		for _, auLen := range auLenArray {
-			endOffset := startOffset + auLen
-			addHead := []byte{0xAF, 0x01}
-			rtsp.PushAudio(0, append(addHead, payload[startOffset:endOffset]...))
-			startOffset = startOffset + auLen
-		}
-	case RTP_TYPE_VIDEO:
-		ts := pack.Timestamp
-		data := pack.Payload
-		Println(len(data))
-		nalType := data[0] & 0x1F
-		if nalType >= 1 && nalType <= 23 {
-			rtsp.handleNALU(nalType, data, ts)
-		} else if nalType == 28 { //FU-A
-			isStart := data[1]&0x80 != 0
-			isEnd := data[1]&0x40 != 0
-			nalType := data[1] & 0x1F
-			//nri := (data[1]&0x60)>>5
-			nal := data[0]&0xE0 | data[1]&0x1F
-			if isStart {
-				rtsp.fuBuffer = []byte{0}
-			}
-			rtsp.fuBuffer = append(rtsp.fuBuffer, data[2:]...)
-			if isEnd {
-				rtsp.fuBuffer[0] = nal
-				rtsp.handleNALU(nalType, rtsp.fuBuffer, ts)
-			}
-		} else if nalType == 24 { //STAP-A
-			var naluLen uint16
-			for data = data[1:]; len(data) > 3; data = data[naluLen+2:] {
-				naluLen = (uint16(data[0]) << 8) + uint16(data[1])
-				nalType = data[2] & 0x1F
-				rtsp.handleNALU(nalType, data[3:naluLen+2], ts)
-			}
-		} else {
-			Println("not support yet ", nalType)
-		}
-	}
 }

@@ -2,13 +2,13 @@ package rtsp
 
 import (
 	"fmt"
+	. "github.com/Monibuca/engine/v2"
+	. "github.com/Monibuca/plugin-rtp"
 	"net"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	. "github.com/Monibuca/engine/v2"
 )
 
 type UDPServer struct {
@@ -29,7 +29,7 @@ func (s *UDPServer) HandleRTP(pack *RTPPack) {
 	s.Lock()
 	defer s.Unlock()
 	if s.Session != nil {
-		s.Session.HandleRTP(pack)
+		s.Session.PushPack(pack)
 	}
 }
 

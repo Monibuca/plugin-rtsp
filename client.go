@@ -7,6 +7,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	. "github.com/Monibuca/engine/v2"
+	. "github.com/Monibuca/plugin-rtp"
 	"io"
 	"net"
 	"net/url"
@@ -14,13 +16,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	. "github.com/Monibuca/engine/v2"
 )
 
 // PullStream 从外部拉流
 func (rtsp *RTSP) PullStream(streamPath string, rtspUrl string) (err error) {
-	if result := rtsp.Publisher.Publish(streamPath); result {
+	if result := rtsp.Publish(streamPath); result {
 		rtsp.Stream.Type = "RTSP"
 		rtsp.RTSPInfo.StreamInfo = &rtsp.Stream.StreamInfo
 		rtsp.TransType = TRANS_TYPE_TCP
@@ -192,8 +192,8 @@ func (client *RTSP) requestStream() (err error) {
 	if videoInfo, ok := client.SDPMap["video"]; ok {
 		client.VControl = videoInfo.Control
 		client.VCodec = videoInfo.Codec
-		client.SPS = videoInfo.SpropParameterSets[0]
-		client.PPS = videoInfo.SpropParameterSets[1]
+		client.WriteSPS(videoInfo.SpropParameterSets[0])
+		client.WritePPS(videoInfo.SpropParameterSets[1])
 		var _url = ""
 		if strings.Index(strings.ToLower(client.VControl), "rtsp://") == 0 {
 			_url = client.VControl
@@ -229,7 +229,7 @@ func (client *RTSP) requestStream() (err error) {
 	if audioInfo, ok := client.SDPMap["audio"]; ok {
 		client.AControl = audioInfo.Control
 		client.ACodec = audioInfo.Codec
-		client.AudioSpecificConfig = audioInfo.Config
+		client.WriteASC(audioInfo.Config)
 		var _url = ""
 		if strings.Index(strings.ToLower(client.AControl), "rtsp://") == 0 {
 			_url = client.AControl
@@ -349,7 +349,7 @@ func (client *RTSP) startStream() {
 			//}
 
 			client.InBytes += int(length + 4)
-			client.HandleRTP(pack)
+			client.PushPack(pack)
 
 		default: // rtsp
 			builder := bytes.Buffer{}

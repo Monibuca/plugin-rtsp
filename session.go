@@ -13,14 +13,9 @@ import (
 	"time"
 
 	. "github.com/Monibuca/engine/v2"
-	"github.com/pion/rtp"
+	. "github.com/Monibuca/plugin-rtp"
 	"github.com/teris-io/shortid"
 )
-
-type RTPPack struct {
-	Type RTPType
-	rtp.Packet
-}
 
 type SessionType int
 
@@ -35,29 +30,6 @@ func (st SessionType) String() string {
 		return "pusher"
 	case SESSEION_TYPE_PLAYER:
 		return "player"
-	}
-	return "unknow"
-}
-
-type RTPType int
-
-const (
-	RTP_TYPE_AUDIO RTPType = iota
-	RTP_TYPE_VIDEO
-	RTP_TYPE_AUDIOCONTROL
-	RTP_TYPE_VIDEOCONTROL
-)
-
-func (rt RTPType) String() string {
-	switch rt {
-	case RTP_TYPE_AUDIO:
-		return "audio"
-	case RTP_TYPE_VIDEO:
-		return "video"
-	case RTP_TYPE_AUDIOCONTROL:
-		return "audio control"
-	case RTP_TYPE_VIDEOCONTROL:
-		return "video control"
 	}
 	return "unknow"
 }
@@ -163,7 +135,7 @@ func (session *RTSP) AcceptPush() {
 				continue
 			}
 			session.InBytes += rtpLen + 4
-			session.HandleRTP(pack)
+			session.PushPack(pack)
 		} else { // rtsp cmd
 			reqBuf := bytes.NewBuffer(nil)
 			reqBuf.WriteByte(buf1)
@@ -349,17 +321,17 @@ func (session *RTSP) handleRequest(req *Request) {
 		if ok {
 			session.AControl = sdp.Control
 			session.ACodec = sdp.Codec
-			session.AudioSpecificConfig = sdp.Config
+			session.WriteASC(sdp.Config)
 			Printf("audio codec[%s]\n", session.ACodec)
 		}
 		if sdp, ok = session.SDPMap["video"]; ok {
 			session.VControl = sdp.Control
 			session.VCodec = sdp.Codec
-			session.SPS = sdp.SpropParameterSets[0]
-			session.PPS = sdp.SpropParameterSets[1]
+			session.WriteSPS(sdp.SpropParameterSets[0])
+			session.WritePPS(sdp.SpropParameterSets[1])
 			Printf("video codec[%s]\n", session.VCodec)
 		}
-		if session.Publisher.Publish(streamPath) {
+		if session.Publish(streamPath) {
 			session.Stream.Type = "RTSP"
 			session.RTSPInfo.StreamInfo = &session.Stream.StreamInfo
 			collection.Store(streamPath, session)
