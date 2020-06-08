@@ -317,21 +317,21 @@ func (session *RTSP) handleRequest(req *Request) {
 
 		session.SDPRaw = req.Body
 		session.SDPMap = ParseSDP(req.Body)
-		sdp, ok := session.SDPMap["audio"]
-		if ok {
-			session.AControl = sdp.Control
-			session.ACodec = sdp.Codec
-			session.WriteASC(sdp.Config)
-			Printf("audio codec[%s]\n", session.ACodec)
-		}
-		if sdp, ok = session.SDPMap["video"]; ok {
-			session.VControl = sdp.Control
-			session.VCodec = sdp.Codec
-			session.WriteSPS(sdp.SpropParameterSets[0])
-			session.WritePPS(sdp.SpropParameterSets[1])
-			Printf("video codec[%s]\n", session.VCodec)
-		}
 		if session.Publish(streamPath) {
+			sdp, ok := session.SDPMap["audio"]
+			if ok {
+				session.AControl = sdp.Control
+				session.ACodec = sdp.Codec
+				session.WriteASC(sdp.Config)
+				Printf("audio codec[%s]\n", session.ACodec)
+			}
+			if sdp, ok = session.SDPMap["video"]; ok {
+				session.VControl = sdp.Control
+				session.VCodec = sdp.Codec
+				session.WriteSPS(sdp.SpropParameterSets[0])
+				session.WritePPS(sdp.SpropParameterSets[1])
+				Printf("video codec[%s]\n", session.VCodec)
+			}
 			session.Stream.Type = "RTSP"
 			session.RTSPInfo.StreamInfo = &session.Stream.StreamInfo
 			collection.Store(streamPath, session)

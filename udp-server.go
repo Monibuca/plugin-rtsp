@@ -2,13 +2,14 @@ package rtsp
 
 import (
 	"fmt"
-	. "github.com/Monibuca/engine/v2"
-	. "github.com/Monibuca/plugin-rtp"
 	"net"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	. "github.com/Monibuca/engine/v2"
+	. "github.com/Monibuca/plugin-rtp"
 )
 
 type UDPServer struct {
@@ -94,7 +95,7 @@ func (s *UDPServer) SetupAudio() (err error) {
 				pack := &RTPPack{
 					Type: RTP_TYPE_AUDIO,
 				}
-				pack.Unmarshal(bufUDP)
+				pack.Unmarshal(bufUDP[:n])
 				s.HandleRTP(pack)
 			} else {
 				Println("udp server read audio pack error", err)
@@ -133,7 +134,7 @@ func (s *UDPServer) SetupAudio() (err error) {
 				pack := &RTPPack{
 					Type: RTP_TYPE_AUDIOCONTROL,
 				}
-				pack.Unmarshal(bufUDP)
+				pack.Unmarshal(bufUDP[:n])
 				s.HandleRTP(pack)
 			} else {
 				Println("udp server read audio control pack error", err)
@@ -182,7 +183,7 @@ func (s *UDPServer) SetupVideo() (err error) {
 				pack := &RTPPack{
 					Type: RTP_TYPE_VIDEO,
 				}
-				pack.Unmarshal(bufUDP)
+				pack.Unmarshal(bufUDP[:n])
 				s.HandleRTP(pack)
 			} else {
 				Println("udp server read video pack error", err)
@@ -222,7 +223,7 @@ func (s *UDPServer) SetupVideo() (err error) {
 				pack := &RTPPack{
 					Type: RTP_TYPE_VIDEOCONTROL,
 				}
-				pack.Unmarshal(bufUDP)
+				pack.Unmarshal(bufUDP[:n])
 				s.HandleRTP(pack)
 			} else {
 				Println("udp server read video control pack error", err)
