@@ -277,8 +277,8 @@ func (client *RTSP) requestStream() (err error) {
 func (client *RTSP) startStream() {
 	//startTime := time.Now()
 	//loggerTime := time.Now().Add(-10 * time.Second)
-	if config.Reconnect {
-		defer func() {
+	defer func() {
+		if client.Err() == nil && config.Reconnect {
 			Printf("reconnecting:", client.URL)
 			if err := client.requestStream(); err != nil {
 				Println(err)
@@ -286,10 +286,10 @@ func (client *RTSP) startStream() {
 				return
 			}
 			go client.startStream()
-		}()
-	} else {
-		defer client.Stop()
-	}
+		} else {
+			client.Stop()
+		}
+	}()
 	for client.Err() == nil {
 		//if client.OptionIntervalMillis > 0 {
 		//	if time.Since(startTime) > time.Duration(client.OptionIntervalMillis)*time.Millisecond {
