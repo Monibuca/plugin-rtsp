@@ -7,8 +7,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	. "github.com/Monibuca/engine/v2"
-	. "github.com/Monibuca/plugin-rtp"
 	"io"
 	"net"
 	"net/url"
@@ -16,6 +14,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	. "github.com/Monibuca/engine/v2"
+	. "github.com/Monibuca/plugin-rtp"
 )
 
 // PullStream 从外部拉流
@@ -229,7 +230,11 @@ func (client *RTSP) requestStream() (err error) {
 	if audioInfo, ok := client.SDPMap["audio"]; ok {
 		client.AControl = audioInfo.Control
 		client.ACodec = audioInfo.Codec
-		client.WriteASC(audioInfo.Config)
+		if len(audioInfo.Config) < 2 {
+			Printf("Setup audio err codec not support: %s", client.ACodec)
+		} else {
+			client.WriteASC(audioInfo.Config)
+		}
 		var _url = ""
 		if strings.Index(strings.ToLower(client.AControl), "rtsp://") == 0 {
 			_url = client.AControl
@@ -272,7 +277,19 @@ func (client *RTSP) requestStream() (err error) {
 func (client *RTSP) startStream() {
 	//startTime := time.Now()
 	//loggerTime := time.Now().Add(-10 * time.Second)
-	defer client.Stop()
+	if config.Reconnect {
+		defer func() {
+			Printf("reconnecting:", client.URL)
+			if err := client.requestStream(); err != nil {
+				Println(err)
+				client.Close()
+				return
+			}
+			go client.startStream()
+		}()
+	} else {
+		defer client.Stop()
+	}
 	for client.Err() == nil {
 		//if client.OptionIntervalMillis > 0 {
 		//	if time.Since(startTime) > time.Duration(client.OptionIntervalMillis)*time.Millisecond {

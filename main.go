@@ -22,7 +22,8 @@ var config = struct {
 	AutoPull   bool
 	RemoteAddr string
 	Timeout    int
-}{":554", false, "rtsp://localhost/${streamPath}", 0}
+	Reconnect  bool
+}{":554", false, "rtsp://localhost/${streamPath}", 0,false}
 
 func init() {
 	InstallPlugin(&PluginConfig{
