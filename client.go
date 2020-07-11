@@ -279,10 +279,11 @@ func (client *RTSP) startStream() {
 	//loggerTime := time.Now().Add(-10 * time.Second)
 	defer func() {
 		if client.Err() == nil && config.Reconnect {
-			Printf("reconnecting:", client.URL)
+			Printf("reconnecting:%s", client.URL)
+			client.RTSPClientInfo = RTSPClientInfo{}
 			if err := client.requestStream(); err != nil {
 				Println(err)
-				client.Close()
+				client.Stop()
 				return
 			}
 			go client.startStream()
@@ -330,6 +331,9 @@ func (client *RTSP) startStream() {
 			case client.aRTPChannel:
 				pack = &RTPPack{
 					Type: RTP_TYPE_AUDIO,
+				}
+				if client.ACodec == "" {
+					continue
 				}
 			case client.aRTPControlChannel:
 				pack = &RTPPack{
