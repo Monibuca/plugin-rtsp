@@ -275,34 +275,44 @@ func (client *RTSP) requestStream() (err error) {
 }
 
 func (client *RTSP) startStream() {
-	//startTime := time.Now()
+	startTime := time.Now()
 	//loggerTime := time.Now().Add(-10 * time.Second)
 	defer func() {
 		if client.Err() == nil && config.Reconnect {
 			Printf("reconnecting:%s", client.URL)
 			client.RTSPClientInfo = RTSPClientInfo{}
 			if err := client.requestStream(); err != nil {
-				Println(err)
-				client.Stop()
-				return
+				t := time.NewTicker(time.Second * 5)
+				for {
+					Printf("reconnecting:%s in 5 seconds", client.URL)
+					select {
+					case <-client.Context.Done():
+						client.Stop()
+						return
+					case <-t.C:
+						if err = client.requestStream(); err == nil {
+							go client.startStream()
+							return
+						}
+					}
+				}
+			} else {
+				go client.startStream()
 			}
-			go client.startStream()
 		} else {
 			client.Stop()
 		}
 	}()
 	for client.Err() == nil {
-		//if client.OptionIntervalMillis > 0 {
-		//	if time.Since(startTime) > time.Duration(client.OptionIntervalMillis)*time.Millisecond {
-		//		startTime = time.Now()
-		//		headers := make(map[string]string)
-		//		headers["Require"] = "implicit-play"
-		//		// An OPTIONS request returns the request types the server will accept.
-		//		if err := client.RequestNoResp("OPTIONS", headers); err != nil {
-		//			// ignore...
-		//		}
-		//	}
-		//}
+		if time.Since(startTime) > time.Minute {
+			startTime = time.Now()
+			headers := make(map[string]string)
+			headers["Require"] = "implicit-play"
+			// An OPTIONS request returns the request types the server will accept.
+			if err := client.RequestNoResp("OPTIONS", headers); err != nil {
+				// ignore...
+			}
+		}
 		b, err := client.connRW.ReadByte()
 		if err != nil {
 			Printf("client.connRW.ReadByte err:%v", err)
