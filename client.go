@@ -144,7 +144,7 @@ func (client *RTSP) requestStream() (err error) {
 	client.connRW = bufio.NewReadWriter(bufio.NewReaderSize(&timeoutConn, networkBuffer), bufio.NewWriterSize(&timeoutConn, networkBuffer))
 
 	headers := make(map[string]string)
-	headers["Require"] = "implicit-play"
+	//headers["Require"] = "implicit-play"
 	// An OPTIONS request returns the request types the server will accept.
 	resp, err := client.Request("OPTIONS", headers)
 	if err != nil {
