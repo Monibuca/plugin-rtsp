@@ -191,80 +191,84 @@ func (client *RTSP) requestStream() (err error) {
 	client.SDPMap = ParseSDP(client.SDPRaw)
 	session := ""
 	if videoInfo, ok := client.SDPMap["video"]; ok {
-		client.VControl = videoInfo.Control
-		client.VCodec = videoInfo.Codec
-		client.WriteSPS(videoInfo.SpropParameterSets[0])
-		client.WritePPS(videoInfo.SpropParameterSets[1])
-		var _url = ""
-		if strings.Index(strings.ToLower(client.VControl), "rtsp://") == 0 {
-			_url = client.VControl
-		} else {
-			_url = strings.TrimRight(client.URL, "/") + "/" + strings.TrimLeft(client.VControl, "/")
-		}
-		headers = make(map[string]string)
-		if client.TransType == TRANS_TYPE_TCP {
-			headers["Transport"] = fmt.Sprintf("RTP/AVP/TCP;unicast;interleaved=%d-%d", client.vRTPChannel, client.vRTPControlChannel)
-		} else {
-			if client.UDPServer == nil {
-				client.UDPServer = &UDPServer{Session: client}
+		for i := 0; i < len(videoInfo.Control); i++ {
+			client.VControl = videoInfo.Control[i]
+			client.VCodec = videoInfo.Codec
+			client.WriteSPS(videoInfo.SpropParameterSets[0])
+			client.WritePPS(videoInfo.SpropParameterSets[1])
+			var _url = ""
+			if strings.Index(strings.ToLower(client.VControl), "rtsp://") == 0 {
+				_url = client.VControl
+			} else {
+				_url = strings.TrimRight(client.URL, "/") + "/" + strings.TrimLeft(client.VControl, "/")
 			}
-			//RTP/AVP;unicast;client_port=64864-64865
-			err = client.UDPServer.SetupVideo()
-			if err != nil {
-				Printf("Setup video err.%v", err)
+			headers = make(map[string]string)
+			if client.TransType == TRANS_TYPE_TCP {
+				headers["Transport"] = fmt.Sprintf("RTP/AVP/TCP;unicast;interleaved=%d-%d", client.vRTPChannel, client.vRTPControlChannel)
+			} else {
+				if client.UDPServer == nil {
+					client.UDPServer = &UDPServer{Session: client}
+				}
+				//RTP/AVP;unicast;client_port=64864-64865
+				err = client.UDPServer.SetupVideo()
+				if err != nil {
+					Printf("Setup video err.%v", err)
+					return err
+				}
+				headers["Transport"] = fmt.Sprintf("RTP/AVP/UDP;unicast;client_port=%d-%d", client.UDPServer.VPort, client.UDPServer.VControlPort)
+				client.Conn.timeout = 0 //	UDP ignore timeout
+			}
+			if session != "" {
+				headers["Session"] = session
+			}
+			Printf("Parse DESCRIBE response, VIDEO VControl:%s, VCode:%s, url:%s,Session:%s,vRTPChannel:%d,vRTPControlChannel:%d", client.VControl, client.VCodec, _url, session, client.vRTPChannel, client.vRTPControlChannel)
+			if resp, err = client.RequestWithPath("SETUP", _url, headers, true); err != nil {
 				return err
 			}
-			headers["Transport"] = fmt.Sprintf("RTP/AVP/UDP;unicast;client_port=%d-%d", client.UDPServer.VPort, client.UDPServer.VControlPort)
-			client.Conn.timeout = 0 //	UDP ignore timeout
+			session, _ = resp.Header["Session"].(string)
+			session = strings.Split(session, ";")[0]
 		}
-		if session != "" {
-			headers["Session"] = session
-		}
-		Printf("Parse DESCRIBE response, VIDEO VControl:%s, VCode:%s, url:%s,Session:%s,vRTPChannel:%d,vRTPControlChannel:%d", client.VControl, client.VCodec, _url, session, client.vRTPChannel, client.vRTPControlChannel)
-		if resp, err = client.RequestWithPath("SETUP", _url, headers, true); err != nil {
-			return err
-		}
-		session, _ = resp.Header["Session"].(string)
-		session = strings.Split(session, ";")[0]
 	}
 	if audioInfo, ok := client.SDPMap["audio"]; ok {
-		client.AControl = audioInfo.Control
-		client.ACodec = audioInfo.Codec
-		if len(audioInfo.Config) < 2 {
-			Printf("Setup audio err codec not support: %s", client.ACodec)
-		} else {
-			client.WriteASC(audioInfo.Config)
-		}
-		var _url = ""
-		if strings.Index(strings.ToLower(client.AControl), "rtsp://") == 0 {
-			_url = client.AControl
-		} else {
-			_url = strings.TrimRight(client.URL, "/") + "/" + strings.TrimLeft(client.AControl, "/")
-		}
-		headers = make(map[string]string)
-		if client.TransType == TRANS_TYPE_TCP {
-			headers["Transport"] = fmt.Sprintf("RTP/AVP/TCP;unicast;interleaved=%d-%d", client.aRTPChannel, client.aRTPControlChannel)
-		} else {
-			if client.UDPServer == nil {
-				client.UDPServer = &UDPServer{Session: client}
+		for i := 0; i < len(audioInfo.Control); i++ {
+			client.AControl = audioInfo.Control[i]
+			client.ACodec = audioInfo.Codec
+			if len(audioInfo.Config) < 2 {
+				Printf("Setup audio err codec not support: %s", client.ACodec)
+			} else {
+				client.WriteASC(audioInfo.Config)
 			}
-			err = client.UDPServer.SetupAudio()
-			if err != nil {
-				Printf("Setup audio err.%v", err)
+			var _url = ""
+			if strings.Index(strings.ToLower(client.AControl), "rtsp://") == 0 {
+				_url = client.AControl
+			} else {
+				_url = strings.TrimRight(client.URL, "/") + "/" + strings.TrimLeft(client.AControl, "/")
+			}
+			headers = make(map[string]string)
+			if client.TransType == TRANS_TYPE_TCP {
+				headers["Transport"] = fmt.Sprintf("RTP/AVP/TCP;unicast;interleaved=%d-%d", client.aRTPChannel, client.aRTPControlChannel)
+			} else {
+				if client.UDPServer == nil {
+					client.UDPServer = &UDPServer{Session: client}
+				}
+				err = client.UDPServer.SetupAudio()
+				if err != nil {
+					Printf("Setup audio err.%v", err)
+					return err
+				}
+				headers["Transport"] = fmt.Sprintf("RTP/AVP/UDP;unicast;client_port=%d-%d", client.UDPServer.APort, client.UDPServer.AControlPort)
+				client.Conn.timeout = 0 //	UDP ignore timeout
+			}
+			if session != "" {
+				headers["Session"] = session
+			}
+			Printf("Parse DESCRIBE response, AUDIO AControl:%s, ACodec:%s, url:%s,Session:%s, aRTPChannel:%d,aRTPControlChannel:%d", client.AControl, client.ACodec, _url, session, client.aRTPChannel, client.aRTPControlChannel)
+			if resp, err = client.RequestWithPath("SETUP", _url, headers, true); err != nil {
 				return err
 			}
-			headers["Transport"] = fmt.Sprintf("RTP/AVP/UDP;unicast;client_port=%d-%d", client.UDPServer.APort, client.UDPServer.AControlPort)
-			client.Conn.timeout = 0 //	UDP ignore timeout
+			session, _ = resp.Header["Session"].(string)
+			session = strings.Split(session, ";")[0]
 		}
-		if session != "" {
-			headers["Session"] = session
-		}
-		Printf("Parse DESCRIBE response, AUDIO AControl:%s, ACodec:%s, url:%s,Session:%s, aRTPChannel:%d,aRTPControlChannel:%d", client.AControl, client.ACodec, _url, session, client.aRTPChannel, client.aRTPControlChannel)
-		if resp, err = client.RequestWithPath("SETUP", _url, headers, true); err != nil {
-			return err
-		}
-		session, _ = resp.Header["Session"].(string)
-		session = strings.Split(session, ";")[0]
 	}
 	headers = make(map[string]string)
 	if session != "" {

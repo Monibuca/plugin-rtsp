@@ -320,13 +320,13 @@ func (session *RTSP) handleRequest(req *Request) {
 		if session.Publish(streamPath) {
 			sdp, ok := session.SDPMap["audio"]
 			if ok {
-				session.AControl = sdp.Control
+				session.AControl = sdp.Control[0]
 				session.ACodec = sdp.Codec
 				session.WriteASC(sdp.Config)
 				Printf("audio codec[%s]\n", session.ACodec)
 			}
 			if sdp, ok = session.SDPMap["video"]; ok {
-				session.VControl = sdp.Control
+				session.VControl = sdp.Control[0]
 				session.VCodec = sdp.Codec
 				session.WriteSPS(sdp.SpropParameterSets[0])
 				session.WritePPS(sdp.SpropParameterSets[1])

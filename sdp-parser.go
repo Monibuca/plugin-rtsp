@@ -11,7 +11,7 @@ type SDPInfo struct {
 	AVType             string
 	Codec              string
 	TimeScale          int
-	Control            string
+	Control            []string
 	Rtpmap             int
 	Config             []byte
 	SpropParameterSets [][]byte
@@ -51,7 +51,7 @@ func ParseSDP(sdpRaw string) map[string]*SDPInfo {
 							val := keyval[1]
 							switch key {
 							case "control":
-								info.Control = val
+								info.Control = append(info.Control, val)
 							case "rtpmap":
 								info.Rtpmap, _ = strconv.Atoi(val)
 							}
