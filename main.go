@@ -23,7 +23,7 @@ var config = struct {
 	RemoteAddr string
 	Timeout    int
 	Reconnect  bool
-}{":554", false, "rtsp://localhost/${streamPath}", 0,false}
+}{":554", false, "rtsp://localhost/${streamPath}", 0, false}
 
 func init() {
 	InstallPlugin(&PluginConfig{
@@ -131,10 +131,8 @@ type RTSP struct {
 	SDPMap   map[string]*SDPInfo
 	nonce    string
 	closeOld bool
-	AControl string
-	VControl string
-	ACodec   string
-	VCodec   string
+	ASdp     *SDPInfo
+	VSdp     *SDPInfo
 	aacsent  bool
 	Timeout  int
 	//tcp channels
