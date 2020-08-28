@@ -263,6 +263,7 @@ func (client *RTSP) requestStream() (err error) {
 	headers = make(map[string]string)
 	if session != "" {
 		headers["Session"] = session
+		client.Session = session
 	}
 	resp, err = client.Request("PLAY", headers)
 	return err
