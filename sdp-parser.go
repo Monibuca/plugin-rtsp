@@ -31,17 +31,13 @@ func ParseSDP(sdpRaw string) map[string]*SDPInfo {
 			switch typeval[0] {
 			case "m":
 				if len(fields) > 0 {
-					switch fields[0] {
-					case "audio", "video":
-						sdpMap[fields[0]] = &SDPInfo{AVType: fields[0]}
-						info = sdpMap[fields[0]]
-						mfields := strings.Split(fields[1], " ")
-						if len(mfields) >= 3 {
-							info.PayloadType, _ = strconv.Atoi(mfields[2])
-						}
+					info = &SDPInfo{AVType: fields[0]}
+					sdpMap[info.AVType] = info
+					mfields := strings.Split(fields[1], " ")
+					if len(mfields) >= 3 {
+						info.PayloadType, _ = strconv.Atoi(mfields[2])
 					}
 				}
-
 			case "a":
 				if info != nil {
 					for _, field := range fields {
@@ -60,6 +56,10 @@ func ParseSDP(sdpRaw string) map[string]*SDPInfo {
 						if len(keyval) >= 2 {
 							key := keyval[0]
 							switch key {
+							case "PCMA":
+								info.Codec = "pcma"
+							case "PCMU":
+								info.Codec = "pcmu"
 							case "MPEG4-GENERIC":
 								info.Codec = "aac"
 							case "H264":

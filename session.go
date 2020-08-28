@@ -318,19 +318,17 @@ func (session *RTSP) handleRequest(req *Request) {
 		session.SDPRaw = req.Body
 		session.SDPMap = ParseSDP(req.Body)
 		if session.Publish(streamPath) {
-			sdp, ok := session.SDPMap["audio"]
-			if ok {
-				session.AControl = sdp.Control
-				session.ACodec = sdp.Codec
-				session.WriteASC(sdp.Config)
-				Printf("audio codec[%s]\n", session.ACodec)
+			var ok bool
+			if session.ASdp, ok = session.SDPMap["audio"]; ok {
+				session.WriteASC(session.ASdp.Config)
+				Printf("audio codec[%s]\n", session.ASdp.Codec)
 			}
-			if sdp, ok = session.SDPMap["video"]; ok {
-				session.VControl = sdp.Control
-				session.VCodec = sdp.Codec
-				session.WriteSPS(sdp.SpropParameterSets[0])
-				session.WritePPS(sdp.SpropParameterSets[1])
-				Printf("video codec[%s]\n", session.VCodec)
+			if session.VSdp, ok = session.SDPMap["video"]; ok {
+				if len(session.VSdp.SpropParameterSets) > 1 {
+					session.WriteSPS(session.VSdp.SpropParameterSets[0])
+					session.WritePPS(session.VSdp.SpropParameterSets[1])
+				}
+				Printf("video codec[%s]\n", session.VSdp.Codec)
 			}
 			session.Stream.Type = "RTSP"
 			session.RTSPInfo.StreamInfo = &session.Stream.StreamInfo
@@ -379,8 +377,8 @@ func (session *RTSP) handleRequest(req *Request) {
 		//	return
 		//}
 		vPath := ""
-		if strings.Index(strings.ToLower(session.VControl), "rtsp://") == 0 {
-			vControlUrl, err := url.Parse(session.VControl)
+		if strings.Index(strings.ToLower(session.VSdp.Control), "rtsp://") == 0 {
+			vControlUrl, err := url.Parse(session.VSdp.Control)
 			if err != nil {
 				res.StatusCode = 500
 				res.Status = "Invalid VControl"
@@ -391,12 +389,12 @@ func (session *RTSP) handleRequest(req *Request) {
 			}
 			vPath = vControlUrl.String()
 		} else {
-			vPath = session.VControl
+			vPath = session.VSdp.Control
 		}
 
 		aPath := ""
-		if strings.Index(strings.ToLower(session.AControl), "rtsp://") == 0 {
-			aControlUrl, err := url.Parse(session.AControl)
+		if strings.Index(strings.ToLower(session.ASdp.Control), "rtsp://") == 0 {
+			aControlUrl, err := url.Parse(session.ASdp.Control)
 			if err != nil {
 				res.StatusCode = 500
 				res.Status = "Invalid AControl"
@@ -407,7 +405,7 @@ func (session *RTSP) handleRequest(req *Request) {
 			}
 			aPath = aControlUrl.String()
 		} else {
-			aPath = session.AControl
+			aPath = session.ASdp.Control
 		}
 
 		mtcp := regexp.MustCompile("interleaved=(\\d+)(-(\\d+))?")

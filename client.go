@@ -30,6 +30,7 @@ func (rtsp *RTSP) PullStream(streamPath string, rtspUrl string) (err error) {
 		rtsp.aRTPChannel = 2
 		rtsp.aRTPControlChannel = 3
 		rtsp.URL = rtspUrl
+		rtsp.UDPServer = &UDPServer{Session: rtsp}
 		if err = rtsp.requestStream(); err != nil {
 			Println(err)
 			rtsp.Close()
@@ -144,7 +145,7 @@ func (client *RTSP) requestStream() (err error) {
 	client.connRW = bufio.NewReadWriter(bufio.NewReaderSize(&timeoutConn, networkBuffer), bufio.NewWriterSize(&timeoutConn, networkBuffer))
 
 	headers := make(map[string]string)
-	headers["Require"] = "implicit-play"
+	//headers["Require"] = "implicit-play"
 	// An OPTIONS request returns the request types the server will accept.
 	resp, err := client.Request("OPTIONS", headers)
 	if err != nil {
@@ -189,77 +190,60 @@ func (client *RTSP) requestStream() (err error) {
 	}
 	client.SDPRaw = resp.Body
 	client.SDPMap = ParseSDP(client.SDPRaw)
+	client.VSdp, client.HasVideo = client.SDPMap["video"]
+	client.ASdp, client.HasAudio = client.SDPMap["audio"]
 	session := ""
-	if videoInfo, ok := client.SDPMap["video"]; ok {
-		client.VControl = videoInfo.Control
-		client.VCodec = videoInfo.Codec
-		client.WriteSPS(videoInfo.SpropParameterSets[0])
-		client.WritePPS(videoInfo.SpropParameterSets[1])
-		var _url = ""
-		if strings.Index(strings.ToLower(client.VControl), "rtsp://") == 0 {
-			_url = client.VControl
-		} else {
-			_url = strings.TrimRight(client.URL, "/") + "/" + strings.TrimLeft(client.VControl, "/")
-		}
+	otherChannel := 4
+	for t, sdpInfo := range client.SDPMap {
 		headers = make(map[string]string)
-		if client.TransType == TRANS_TYPE_TCP {
-			headers["Transport"] = fmt.Sprintf("RTP/AVP/TCP;unicast;interleaved=%d-%d", client.vRTPChannel, client.vRTPControlChannel)
-		} else {
-			if client.UDPServer == nil {
-				client.UDPServer = &UDPServer{Session: client}
-			}
-			//RTP/AVP;unicast;client_port=64864-64865
-			err = client.UDPServer.SetupVideo()
-			if err != nil {
-				Printf("Setup video err.%v", err)
-				return err
-			}
-			headers["Transport"] = fmt.Sprintf("RTP/AVP/UDP;unicast;client_port=%d-%d", client.UDPServer.VPort, client.UDPServer.VControlPort)
-			client.Conn.timeout = 0 //	UDP ignore timeout
-		}
 		if session != "" {
 			headers["Session"] = session
 		}
-		Printf("Parse DESCRIBE response, VIDEO VControl:%s, VCode:%s, url:%s,Session:%s,vRTPChannel:%d,vRTPControlChannel:%d", client.VControl, client.VCodec, _url, session, client.vRTPChannel, client.vRTPControlChannel)
-		if resp, err = client.RequestWithPath("SETUP", _url, headers, true); err != nil {
-			return err
+		var _url = sdpInfo.Control
+		if !strings.HasPrefix(strings.ToLower(sdpInfo.Control), "rtsp://") {
+			_url = strings.TrimRight(client.URL, "/") + "/" + strings.TrimLeft(sdpInfo.Control, "/")
 		}
-		session, _ = resp.Header["Session"].(string)
-		session = strings.Split(session, ";")[0]
-	}
-	if audioInfo, ok := client.SDPMap["audio"]; ok {
-		client.AControl = audioInfo.Control
-		client.ACodec = audioInfo.Codec
-		if len(audioInfo.Config) < 2 {
-			Printf("Setup audio err codec not support: %s", client.ACodec)
-		} else {
-			client.WriteASC(audioInfo.Config)
-		}
-		var _url = ""
-		if strings.Index(strings.ToLower(client.AControl), "rtsp://") == 0 {
-			_url = client.AControl
-		} else {
-			_url = strings.TrimRight(client.URL, "/") + "/" + strings.TrimLeft(client.AControl, "/")
-		}
-		headers = make(map[string]string)
-		if client.TransType == TRANS_TYPE_TCP {
-			headers["Transport"] = fmt.Sprintf("RTP/AVP/TCP;unicast;interleaved=%d-%d", client.aRTPChannel, client.aRTPControlChannel)
-		} else {
-			if client.UDPServer == nil {
-				client.UDPServer = &UDPServer{Session: client}
+		switch t {
+		case "video":
+			if len(sdpInfo.SpropParameterSets) > 1 {
+				client.WriteSPS(sdpInfo.SpropParameterSets[0])
+				client.WritePPS(sdpInfo.SpropParameterSets[1])
 			}
-			err = client.UDPServer.SetupAudio()
-			if err != nil {
-				Printf("Setup audio err.%v", err)
-				return err
+			if client.TransType == TRANS_TYPE_TCP {
+				headers["Transport"] = fmt.Sprintf("RTP/AVP/TCP;unicast;interleaved=%d-%d", client.vRTPChannel, client.vRTPControlChannel)
+			} else {
+				//RTP/AVP;unicast;client_port=64864-64865
+				if err = client.UDPServer.SetupVideo(); err != nil {
+					Printf("Setup video err.%v", err)
+					return err
+				}
+				headers["Transport"] = fmt.Sprintf("RTP/AVP/UDP;unicast;client_port=%d-%d", client.UDPServer.VPort, client.UDPServer.VControlPort)
+				client.Conn.timeout = 0 //	UDP ignore timeout
 			}
-			headers["Transport"] = fmt.Sprintf("RTP/AVP/UDP;unicast;client_port=%d-%d", client.UDPServer.APort, client.UDPServer.AControlPort)
-			client.Conn.timeout = 0 //	UDP ignore timeout
+		case "audio":
+			if len(sdpInfo.Config) < 2 {
+				Printf("Setup audio err codec not support: %s", client.ASdp.Codec)
+			} else {
+				client.WriteASC(sdpInfo.Config)
+			}
+			if client.TransType == TRANS_TYPE_TCP {
+				headers["Transport"] = fmt.Sprintf("RTP/AVP/TCP;unicast;interleaved=%d-%d", client.aRTPChannel, client.aRTPControlChannel)
+			} else {
+				if err = client.UDPServer.SetupAudio(); err != nil {
+					Printf("Setup audio err.%v", err)
+					return err
+				}
+				headers["Transport"] = fmt.Sprintf("RTP/AVP/UDP;unicast;client_port=%d-%d", client.UDPServer.APort, client.UDPServer.AControlPort)
+				client.Conn.timeout = 0 //	UDP ignore timeout
+			}
+		default:
+			if client.TransType == TRANS_TYPE_TCP {
+				headers["Transport"] = fmt.Sprintf("RTP/AVP/TCP;unicast;interleaved=%d-%d", otherChannel, otherChannel+1)
+				otherChannel += 2
+			} else {
+				//TODO: UDP support
+			}
 		}
-		if session != "" {
-			headers["Session"] = session
-		}
-		Printf("Parse DESCRIBE response, AUDIO AControl:%s, ACodec:%s, url:%s,Session:%s, aRTPChannel:%d,aRTPControlChannel:%d", client.AControl, client.ACodec, _url, session, client.aRTPChannel, client.aRTPControlChannel)
 		if resp, err = client.RequestWithPath("SETUP", _url, headers, true); err != nil {
 			return err
 		}
@@ -286,7 +270,7 @@ func (client *RTSP) startStream() {
 				for {
 					Printf("reconnecting:%s in 5 seconds", client.URL)
 					select {
-					case <-client.Context.Done():
+					case <-client.Done():
 						client.Stop()
 						return
 					case <-t.C:
@@ -342,7 +326,7 @@ func (client *RTSP) startStream() {
 				pack = &RTPPack{
 					Type: RTP_TYPE_AUDIO,
 				}
-				if client.ACodec == "" {
+				if client.ASdp.Codec != "aac" {
 					continue
 				}
 			case client.aRTPControlChannel:
