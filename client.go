@@ -309,7 +309,7 @@ func (client *RTSP) startStream() {
 			headers := make(map[string]string)
 			headers["Require"] = "implicit-play"
 			// An OPTIONS request returns the request types the server will accept.
-			if err := client.RequestNoResp("OPTIONS", headers); err != nil {
+			if err := client.RequestNoResp("GET_PARAMETER", headers); err != nil {
 				// ignore...
 			}
 		}
