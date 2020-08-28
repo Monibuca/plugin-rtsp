@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -79,6 +80,18 @@ func DigestAuth(authLine string, method string, URL string) (string, error) {
 	Authorization := fmt.Sprintf("Digest username=\"%s\", realm=\"%s\", nonce=\"%s\", uri=\"%s\", response=\"%s\"", username, realm, nonce, l.String(), response)
 	return Authorization, nil
 }
+// auth Basic验证
+func BasicAuth(authLine string, method string, URL string) (string, error) {
+	l, err := url.Parse(URL)
+	if err != nil {
+		return "", fmt.Errorf("Url parse error:%v,%v", URL, err)
+	}
+	username := l.User.Username()
+	password, _ := l.User.Password()
+	userAndpass := []byte(username + ":" + password)
+	Authorization := fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString(userAndpass))
+	return Authorization, nil
+}
 func (client *RTSP) checkAuth(method string, resp *Response) (string, error) {
 	if resp.StatusCode == 401 {
 		// need auth.
@@ -92,8 +105,7 @@ func (client *RTSP) checkAuth(method string, resp *Response) (string, error) {
 					client.authLine = authLine
 					return DigestAuth(authLine, method, client.URL)
 				} else if strings.IndexAny(authLine, "Basic") == 0 {
-					// not support yet
-					// TODO..
+					return BasicAuth(authLine, method, client.URL)
 				}
 			}
 			return "", fmt.Errorf("auth error")
@@ -103,9 +115,7 @@ func (client *RTSP) checkAuth(method string, resp *Response) (string, error) {
 				client.authLine = authLine
 				return DigestAuth(authLine, method, client.URL)
 			} else if strings.IndexAny(authLine, "Basic") == 0 {
-				// not support yet
-				// TODO..
-				return "", fmt.Errorf("not support Basic auth yet")
+				return BasicAuth(authLine, method, client.URL)
 			}
 		}
 	}
@@ -293,7 +303,7 @@ func (client *RTSP) startStream() {
 			headers := make(map[string]string)
 			headers["Require"] = "implicit-play"
 			// An OPTIONS request returns the request types the server will accept.
-			if err := client.RequestNoResp("OPTIONS", headers); err != nil {
+			if err := client.RequestNoResp("GET_PARAMETER", headers); err != nil {
 				// ignore...
 			}
 		}
