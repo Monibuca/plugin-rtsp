@@ -231,10 +231,10 @@ func (client *RTSP) requestStream() (err error) {
 				client.Conn.timeout = 0 //	UDP ignore timeout
 			}
 		case "audio":
-			if len(sdpInfo.Config) < 2 {
-				Printf("Setup audio err codec not support: %s", client.ASdp.Codec)
-			} else {
+			if len(sdpInfo.Config) > 0 {
 				client.WriteASC(sdpInfo.Config)
+			}else{
+				client.setAudioFormat()
 			}
 			if client.TransType == TRANS_TYPE_TCP {
 				headers["Transport"] = fmt.Sprintf("RTP/AVP/TCP;unicast;interleaved=%d-%d", client.aRTPChannel, client.aRTPControlChannel)
@@ -336,9 +336,6 @@ func (client *RTSP) startStream() {
 			case client.aRTPChannel:
 				pack = &RTPPack{
 					Type: RTP_TYPE_AUDIO,
-				}
-				if client.ASdp.Codec != "aac" {
-					continue
 				}
 			case client.aRTPControlChannel:
 				pack = &RTPPack{

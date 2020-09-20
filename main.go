@@ -144,6 +144,20 @@ type RTSP struct {
 	UDPClient          *UDPClient
 	Auth               func(string) string
 }
+func (rtsp *RTSP) setAudioFormat(){
+	switch rtsp.ASdp.Codec {
+	case "aac":
+		rtsp.AudioInfo.SoundFormat = 10
+	case "pcma":
+		rtsp.AudioInfo.SoundFormat = 7
+		rtsp.AudioInfo.SoundRate = rtsp.ASdp.TimeScale
+		rtsp.AudioInfo.SoundSize = 16
+	case "pcmu":
+		rtsp.AudioInfo.SoundFormat = 8
+		rtsp.AudioInfo.SoundRate = rtsp.ASdp.TimeScale
+		rtsp.AudioInfo.SoundSize = 16
+	}
+}
 type RTSPClientInfo struct {
 	Agent    string
 	Session  string

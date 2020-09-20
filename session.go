@@ -318,12 +318,15 @@ func (session *RTSP) handleRequest(req *Request) {
 		session.SDPRaw = req.Body
 		session.SDPMap = ParseSDP(req.Body)
 		if session.Publish(streamPath) {
-			var ok bool
-			if session.ASdp, ok = session.SDPMap["audio"]; ok {
-				session.WriteASC(session.ASdp.Config)
+			if session.ASdp, session.HasAudio = session.SDPMap["audio"]; session.HasAudio {
+				if len(session.ASdp.Control) >0 {
+					session.WriteASC(session.ASdp.Config)
+				}else{
+					session.setAudioFormat()
+				}
 				Printf("audio codec[%s]\n", session.ASdp.Codec)
 			}
-			if session.VSdp, ok = session.SDPMap["video"]; ok {
+			if session.VSdp, session.HasVideo = session.SDPMap["video"]; session.HasVideo {
 				if len(session.VSdp.SpropParameterSets) > 1 {
 					session.WriteSPS(session.VSdp.SpropParameterSets[0])
 					session.WritePPS(session.VSdp.SpropParameterSets[1])
