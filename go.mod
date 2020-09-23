@@ -3,7 +3,7 @@ module github.com/Monibuca/plugin-rtsp
 go 1.13
 
 require (
-	github.com/Monibuca/engine/v2 v2.2.0
+	github.com/Monibuca/engine/v2 v2.2.1
 	github.com/Monibuca/plugin-rtp v1.0.0
 	github.com/logrusorgru/aurora v2.0.3+incompatible // indirect
 	github.com/mattn/go-colorable v0.1.7 // indirect

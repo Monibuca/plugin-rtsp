@@ -8,6 +8,8 @@ github.com/Monibuca/engine/v2 v2.1.9 h1:IulMIeP24qv8xWaI+tcg233Y7w3mCaLXxt4iQaVp
 github.com/Monibuca/engine/v2 v2.1.9/go.mod h1:34EYjjV15G6myuHOKaJkO7y5tJ1Arq/NfC9Weacr2mc=
 github.com/Monibuca/engine/v2 v2.2.0 h1:A4SyWwzVLegd8Oa6LfSW3LpNfBmWq+MHJJLO55gvaYI=
 github.com/Monibuca/engine/v2 v2.2.0/go.mod h1:34EYjjV15G6myuHOKaJkO7y5tJ1Arq/NfC9Weacr2mc=
+github.com/Monibuca/engine/v2 v2.2.1 h1:I9mcnj9ZABl974n+HKGWe4pFcn9z8kETLVpD1fx2zEI=
+github.com/Monibuca/engine/v2 v2.2.1/go.mod h1:34EYjjV15G6myuHOKaJkO7y5tJ1Arq/NfC9Weacr2mc=
 github.com/Monibuca/plugin-rtp v0.0.0-20200531014802-504413c0dfcb h1:CnmoQ8XsWxs/6mulbQfTGUa8cPr6c/3bkkTsNozRBwE=
 github.com/Monibuca/plugin-rtp v0.0.0-20200531014802-504413c0dfcb/go.mod h1:8HxBilkF835Lepe/DLUCjaw1mRiu3MxTDsG7g9UcfZA=
 github.com/Monibuca/plugin-rtp v1.0.0 h1:yksNsIIGxoKX8UZirkAUK+mGZ/XoEeS2vqbIqtqXyCg=
