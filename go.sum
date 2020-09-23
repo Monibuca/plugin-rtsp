@@ -10,6 +10,7 @@ github.com/Monibuca/engine/v2 v2.2.0 h1:A4SyWwzVLegd8Oa6LfSW3LpNfBmWq+MHJJLO55gv
 github.com/Monibuca/engine/v2 v2.2.0/go.mod h1:34EYjjV15G6myuHOKaJkO7y5tJ1Arq/NfC9Weacr2mc=
 github.com/Monibuca/plugin-rtp v0.0.0-20200531014802-504413c0dfcb h1:CnmoQ8XsWxs/6mulbQfTGUa8cPr6c/3bkkTsNozRBwE=
 github.com/Monibuca/plugin-rtp v0.0.0-20200531014802-504413c0dfcb/go.mod h1:8HxBilkF835Lepe/DLUCjaw1mRiu3MxTDsG7g9UcfZA=
+github.com/Monibuca/plugin-rtp v1.0.0 h1:yksNsIIGxoKX8UZirkAUK+mGZ/XoEeS2vqbIqtqXyCg=
 github.com/Monibuca/plugin-rtp v1.0.0/go.mod h1:0xkNm23a/BjVnEMz1zXyOqfEjoVmGe3PJqPNF1KyFGc=
 github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d h1:G0m3OIz70MZUWq3EgK3CesDbo8upS2Vm9/P3FtgI+Jk=
 github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d/go.mod h1:3eOhrUMpNV+6aFIbp5/iudMxNCF27Vw2OZgy4xEx0Fg=
@@ -25,6 +26,7 @@ github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381 h1:bqDmpDG49ZRn
 github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381/go.mod h1:7rIyQOR62GCctdiQpZ/zOJlFyk6y+94wXzv6RNZgaR4=
 github.com/logrusorgru/aurora v2.0.3+incompatible h1:tOpm7WcpBTn4fjmVfgpQq0EfczGlG91VSDkswnjF5A8=
 github.com/logrusorgru/aurora v2.0.3+incompatible/go.mod h1:7rIyQOR62GCctdiQpZ/zOJlFyk6y+94wXzv6RNZgaR4=
+github.com/mask-pp/rtp-ps v1.0.0 h1:JFxuJL9N+gD1ldgJlAy3b7rYfY8wAVHi9ODNmdP4+EE=
 github.com/mask-pp/rtp-ps v1.0.0/go.mod h1:jCxsZ2G7z/jX+aqFypEWMePnhNrfnUiXUEKm6Xp0vgU=
 github.com/mattn/go-colorable v0.1.6 h1:6Su7aK7lXmJ/U79bYtBjLNaha4Fs1Rg9plHpcH+vvnE=
 github.com/mattn/go-colorable v0.1.6/go.mod h1:u6P/XSegPjTcexA+o6vUJrdnUu04hMope9wVRipJSqc=

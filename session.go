@@ -319,9 +319,9 @@ func (session *RTSP) handleRequest(req *Request) {
 		session.SDPMap = ParseSDP(req.Body)
 		if session.Publish(streamPath) {
 			if session.ASdp, session.HasAudio = session.SDPMap["audio"]; session.HasAudio {
-				if len(session.ASdp.Control) >0 {
+				if len(session.ASdp.Control) > 0 {
 					session.WriteASC(session.ASdp.Config)
-				}else{
+				} else {
 					session.setAudioFormat()
 				}
 				Printf("audio codec[%s]\n", session.ASdp.Codec)
@@ -379,36 +379,38 @@ func (session *RTSP) handleRequest(req *Request) {
 		//	res.Status = "Error Status"
 		//	return
 		//}
-		vPath := ""
-		if strings.Index(strings.ToLower(session.VSdp.Control), "rtsp://") == 0 {
-			vControlUrl, err := url.Parse(session.VSdp.Control)
-			if err != nil {
-				res.StatusCode = 500
-				res.Status = "Invalid VControl"
-				return
+		var vPath, aPath string
+		if session.HasVideo {
+			if strings.Index(strings.ToLower(session.VSdp.Control), "rtsp://") == 0 {
+				vControlUrl, err := url.Parse(session.VSdp.Control)
+				if err != nil {
+					res.StatusCode = 500
+					res.Status = "Invalid VControl"
+					return
+				}
+				if vControlUrl.Port() == "" {
+					vControlUrl.Host = fmt.Sprintf("%s:554", vControlUrl.Host)
+				}
+				vPath = vControlUrl.String()
+			} else {
+				vPath = session.VSdp.Control
 			}
-			if vControlUrl.Port() == "" {
-				vControlUrl.Host = fmt.Sprintf("%s:554", vControlUrl.Host)
-			}
-			vPath = vControlUrl.String()
-		} else {
-			vPath = session.VSdp.Control
 		}
-
-		aPath := ""
-		if strings.Index(strings.ToLower(session.ASdp.Control), "rtsp://") == 0 {
-			aControlUrl, err := url.Parse(session.ASdp.Control)
-			if err != nil {
-				res.StatusCode = 500
-				res.Status = "Invalid AControl"
-				return
+		if session.HasAudio {
+			if strings.Index(strings.ToLower(session.ASdp.Control), "rtsp://") == 0 {
+				aControlUrl, err := url.Parse(session.ASdp.Control)
+				if err != nil {
+					res.StatusCode = 500
+					res.Status = "Invalid AControl"
+					return
+				}
+				if aControlUrl.Port() == "" {
+					aControlUrl.Host = fmt.Sprintf("%s:554", aControlUrl.Host)
+				}
+				aPath = aControlUrl.String()
+			} else {
+				aPath = session.ASdp.Control
 			}
-			if aControlUrl.Port() == "" {
-				aControlUrl.Host = fmt.Sprintf("%s:554", aControlUrl.Host)
-			}
-			aPath = aControlUrl.String()
-		} else {
-			aPath = session.ASdp.Control
 		}
 
 		mtcp := regexp.MustCompile("interleaved=(\\d+)(-(\\d+))?")
