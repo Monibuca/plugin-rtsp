@@ -18,12 +18,16 @@ import (
 
 var collection sync.Map
 var config = struct {
-	ListenAddr string
-	AutoPull   bool
-	RemoteAddr string
-	Timeout    int
-	Reconnect  bool
-}{":554", false, "rtsp://localhost/${streamPath}", 0, false}
+	ListenAddr   string
+	AutoPull     bool
+	RemoteAddr   string
+	Timeout      int
+	Reconnect    bool
+	AutoPullList []*struct {
+		URL        string
+		StreamPath string
+	}
+}{":554", false, "rtsp://localhost/${streamPath}", 0, false, nil}
 
 func init() {
 	InstallPlugin(&PluginConfig{
@@ -67,6 +71,13 @@ func runPlugin() {
 			w.Write([]byte(fmt.Sprintf(`{"code":1,"msg":"%s"}`, err.Error())))
 		}
 	})
+	if len(config.AutoPullList) > 0 {
+		for _, info := range config.AutoPullList {
+			if err := new(RTSP).PullStream(info.StreamPath, info.URL); err != nil {
+				Println(err)
+			}
+		}
+	}
 	if config.ListenAddr != "" {
 		log.Fatal(ListenRtsp(config.ListenAddr))
 	}
@@ -144,7 +155,8 @@ type RTSP struct {
 	UDPClient          *UDPClient
 	Auth               func(string) string
 }
-func (rtsp *RTSP) setAudioFormat(){
+
+func (rtsp *RTSP) setAudioFormat() {
 	switch rtsp.ASdp.Codec {
 	case "aac":
 		rtsp.AudioInfo.SoundFormat = 10
@@ -158,6 +170,7 @@ func (rtsp *RTSP) setAudioFormat(){
 		rtsp.AudioInfo.SoundSize = 16
 	}
 }
+
 type RTSPClientInfo struct {
 	Agent    string
 	Session  string
