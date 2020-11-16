@@ -63,6 +63,7 @@ func runPlugin() {
 		}
 	})
 	http.HandleFunc("/rtsp/pull", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		targetURL := r.URL.Query().Get("target")
 		streamPath := r.URL.Query().Get("streamPath")
 		if err := new(RTSP).PullStream(streamPath, targetURL); err == nil {
