@@ -16,15 +16,15 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/Monibuca/engine/v2"
-	. "github.com/Monibuca/plugin-rtp"
+	. "github.com/Monibuca/engine/v3"
+	. "github.com/Monibuca/utils/v3"
+	"github.com/pion/rtp"
 )
 
 // PullStream 从外部拉流
 func (rtsp *RTSP) PullStream(streamPath string, rtspUrl string) (err error) {
 	if result := rtsp.Publish(streamPath); result {
 		rtsp.Stream.Type = "RTSP"
-		rtsp.RTSPInfo.StreamInfo = &rtsp.Stream.StreamInfo
 		rtsp.TransType = TRANS_TYPE_TCP
 		rtsp.vRTPChannel = 0
 		rtsp.vRTPControlChannel = 1
@@ -80,6 +80,7 @@ func DigestAuth(authLine string, method string, URL string) (string, error) {
 	Authorization := fmt.Sprintf("Digest username=\"%s\", realm=\"%s\", nonce=\"%s\", uri=\"%s\", response=\"%s\"", username, realm, nonce, l.String(), response)
 	return Authorization, nil
 }
+
 // auth Basic验证
 func BasicAuth(authLine string, method string, URL string) (string, error) {
 	l, err := url.Parse(URL)
@@ -216,8 +217,11 @@ func (client *RTSP) requestStream() (err error) {
 		switch t {
 		case "video":
 			if len(sdpInfo.SpropParameterSets) > 1 {
-				client.WriteSPS(sdpInfo.SpropParameterSets[0])
-				client.WritePPS(sdpInfo.SpropParameterSets[1])
+				vt := NewVideoTrack()
+				vt.CodecID = 7
+				vt.Push(0, sdpInfo.SpropParameterSets[0])
+				vt.Push(0, sdpInfo.SpropParameterSets[1])
+				client.SetOriginVT(vt)
 			}
 			if client.TransType == TRANS_TYPE_TCP {
 				headers["Transport"] = fmt.Sprintf("RTP/AVP/TCP;unicast;interleaved=%d-%d", client.vRTPChannel, client.vRTPControlChannel)
@@ -231,11 +235,13 @@ func (client *RTSP) requestStream() (err error) {
 				client.Conn.timeout = 0 //	UDP ignore timeout
 			}
 		case "audio":
+			at := NewAudioTrack()
 			if len(sdpInfo.Config) > 0 {
-				client.WriteASC(sdpInfo.Config)
-			}else{
-				client.setAudioFormat()
+				at.SetASC(sdpInfo.Config)
+			} else {
+				client.setAudioFormat(at)
 			}
+			client.SetOriginAT(at)
 			if client.TransType == TRANS_TYPE_TCP {
 				headers["Transport"] = fmt.Sprintf("RTP/AVP/TCP;unicast;interleaved=%d-%d", client.aRTPChannel, client.aRTPControlChannel)
 			} else {
@@ -330,30 +336,22 @@ func (client *RTSP) startStream() {
 				Printf("io.ReadFull err:%v", err)
 				return
 			}
-			var pack *RTPPack
-
+			var pack rtp.Packet
+			pack.Unmarshal(content)
 			switch channel {
 			case client.aRTPChannel:
-				pack = &RTPPack{
-					Type: RTP_TYPE_AUDIO,
-				}
+				client.OriginAudioTrack.Push(pack.Timestamp, pack.Payload)
 			case client.aRTPControlChannel:
-				pack = &RTPPack{
-					Type: RTP_TYPE_AUDIOCONTROL,
-				}
+
 			case client.vRTPChannel:
-				pack = &RTPPack{
-					Type: RTP_TYPE_VIDEO,
-				}
+				client.OriginVideoTrack.Push(pack.Timestamp, pack.Payload)
 			case client.vRTPControlChannel:
-				pack = &RTPPack{
-					Type: RTP_TYPE_VIDEOCONTROL,
-				}
+
 			default:
 				Printf("unknow rtp pack type, channel:%v", channel)
 				continue
 			}
-			pack.Unmarshal(content)
+
 			//if client.debugLogEnable {
 			//	rtp := ParseRTP(pack.Buffer)
 			//	if rtp != nil {
@@ -372,7 +370,6 @@ func (client *RTSP) startStream() {
 			//}
 
 			client.InBytes += int(length + 4)
-			client.PushPack(pack)
 
 		default: // rtsp
 			builder := bytes.Buffer{}

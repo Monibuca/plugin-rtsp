@@ -8,8 +8,7 @@ import (
 	"sync"
 	"time"
 
-	. "github.com/Monibuca/engine/v2"
-	. "github.com/Monibuca/plugin-rtp"
+	. "github.com/Monibuca/utils/v3"
 )
 
 type UDPServer struct {
@@ -30,7 +29,12 @@ func (s *UDPServer) HandleRTP(pack *RTPPack) {
 	s.Lock()
 	defer s.Unlock()
 	if s.Session != nil {
-		s.Session.PushPack(pack)
+		switch pack.Type {
+		case RTP_TYPE_AUDIO:
+			s.Session.OriginAudioTrack.Push(pack.Timestamp,pack.Payload)
+		case RTP_TYPE_VIDEO:
+			s.Session.OriginVideoTrack.Push(pack.Timestamp,pack.Payload)
+		}
 	}
 }
 

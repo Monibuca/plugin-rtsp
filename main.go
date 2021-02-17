@@ -10,9 +10,8 @@ import (
 	"sync"
 	"time"
 
-	. "github.com/Monibuca/engine/v2"
-	"github.com/Monibuca/engine/v2/util"
-	. "github.com/Monibuca/plugin-rtp"
+	. "github.com/Monibuca/engine/v3"
+	. "github.com/Monibuca/utils/v3"
 	"github.com/teris-io/shortid"
 )
 
@@ -32,7 +31,6 @@ var config = struct {
 func init() {
 	InstallPlugin(&PluginConfig{
 		Name:   "RTSP",
-		Type:   PLUGIN_PUBLISHER | PLUGIN_HOOK,
 		Config: &config,
 		Run:    runPlugin,
 		HotConfig: map[string]func(interface{}){
@@ -43,20 +41,15 @@ func init() {
 	})
 }
 func runPlugin() {
-	OnSubscribeHooks.AddHook(func(s *Subscriber) {
-		if config.AutoPull && s.Publisher == nil {
-			new(RTSP).PullStream(s.StreamPath, strings.Replace(config.RemoteAddr, "${streamPath}", s.StreamPath, -1))
-		}
-	})
+
 	http.HandleFunc("/rtsp/list", func(w http.ResponseWriter, r *http.Request) {
-		sse := util.NewSSE(w, r.Context())
+		sse := NewSSE(w, r.Context())
 		var err error
 		for tick := time.NewTicker(time.Second); err == nil; <-tick.C {
-			var info []*RTSPInfo
+			var info []*RTSP
 			collection.Range(func(key, value interface{}) bool {
 				rtsp := value.(*RTSP)
-				pinfo := &rtsp.RTSPInfo
-				info = append(info, pinfo)
+				info = append(info, rtsp)
 				return true
 			})
 			err = sse.WriteJSON(info)
@@ -80,8 +73,14 @@ func runPlugin() {
 		}
 	}
 	if config.ListenAddr != "" {
-		log.Fatal(ListenRtsp(config.ListenAddr))
+		go log.Fatal(ListenRtsp(config.ListenAddr))
 	}
+	AddHook(HOOK_SUBSCRIBE, func(value interface{}) {
+		s := value.(*Subscriber)
+		if config.AutoPull && s.Publisher == nil {
+			new(RTSP).PullStream(s.StreamPath, strings.Replace(config.RemoteAddr, "${streamPath}", s.StreamPath, -1))
+		}
+	})
 }
 
 func ListenRtsp(addr string) error {
@@ -130,11 +129,14 @@ func ListenRtsp(addr string) error {
 }
 
 type RTSP struct {
-	RTP
-	RTSPInfo
+	Publisher
+	URL      string
+	SDPRaw   string
+	InBytes  int
+	OutBytes int
 	RTSPClientInfo
 	ID        string
-	Conn      *RichConn
+	Conn      *RichConn `json:"-"`
 	connRW    *bufio.ReadWriter
 	connWLock sync.RWMutex
 	Type      SessionType
@@ -152,23 +154,25 @@ type RTSP struct {
 	aRTPControlChannel int
 	vRTPChannel        int
 	vRTPControlChannel int
-	UDPServer          *UDPServer
-	UDPClient          *UDPClient
-	Auth               func(string) string
+	UDPServer          *UDPServer          `json:"-"`
+	UDPClient          *UDPClient          `json:"-"`
+	Auth               func(string) string `json:"-"`
+	HasVideo           bool
+	HasAudio           bool
 }
 
-func (rtsp *RTSP) setAudioFormat() {
+func (rtsp *RTSP) setAudioFormat(at *AudioTrack) {
 	switch rtsp.ASdp.Codec {
 	case "aac":
-		rtsp.AudioInfo.SoundFormat = 10
+		at.SoundFormat = 10
 	case "pcma":
-		rtsp.AudioInfo.SoundFormat = 7
-		rtsp.AudioInfo.SoundRate = rtsp.ASdp.TimeScale
-		rtsp.AudioInfo.SoundSize = 16
+		at.SoundFormat = 7
+		at.SoundRate = rtsp.ASdp.TimeScale
+		at.SoundSize = 16
 	case "pcmu":
-		rtsp.AudioInfo.SoundFormat = 8
-		rtsp.AudioInfo.SoundRate = rtsp.ASdp.TimeScale
-		rtsp.AudioInfo.SoundSize = 16
+		at.SoundFormat = 8
+		at.SoundRate = rtsp.ASdp.TimeScale
+		at.SoundSize = 16
 	}
 }
 
@@ -178,14 +182,6 @@ type RTSPClientInfo struct {
 	authLine string
 	Seq      int
 }
-type RTSPInfo struct {
-	URL        string
-	SDPRaw     string
-	InBytes    int
-	OutBytes   int
-	StreamInfo *StreamInfo
-}
-
 type RichConn struct {
 	net.Conn
 	timeout time.Duration

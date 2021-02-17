@@ -12,11 +12,17 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/Monibuca/engine/v2"
-	. "github.com/Monibuca/plugin-rtp"
+	. "github.com/Monibuca/engine/v3"
+	. "github.com/Monibuca/utils/v3"
+	"github.com/Monibuca/utils/v3/codec"
+	"github.com/pion/rtp"
 	"github.com/teris-io/shortid"
 )
 
+type RTPPack struct {
+	Type RTPType
+	rtp.Packet
+}
 type SessionType int
 
 const (
@@ -33,6 +39,15 @@ func (st SessionType) String() string {
 	}
 	return "unknow"
 }
+
+type RTPType int
+
+const (
+	RTP_TYPE_AUDIO RTPType = iota
+	RTP_TYPE_VIDEO
+	RTP_TYPE_AUDIOCONTROL
+	RTP_TYPE_VIDEOCONTROL
+)
 
 type TransType int
 
@@ -71,9 +86,7 @@ func (session *RTSP) Stop() {
 		session.UDPServer.Stop()
 		session.UDPServer = nil
 	}
-	if session.Running() {
-		session.Cancel()
-	}
+	session.Close()
 	if session.Stream != nil {
 		collection.Delete(session.StreamPath)
 	}
@@ -119,6 +132,7 @@ func (session *RTSP) AcceptPush() {
 					Println("Recv an audio RTP package")
 					timer = time.Now()
 				}
+				session.OriginAudioTrack.Push(pack.Timestamp,pack.Payload)
 			case session.aRTPControlChannel:
 				pack.Type = RTP_TYPE_AUDIOCONTROL
 			case session.vRTPChannel:
@@ -128,6 +142,7 @@ func (session *RTSP) AcceptPush() {
 					Println("Recv an video RTP package")
 					timer = time.Now()
 				}
+				session.OriginVideoTrack.Push(pack.Timestamp,pack.Payload)
 			case session.vRTPControlChannel:
 				pack.Type = RTP_TYPE_VIDEOCONTROL
 			default:
@@ -135,7 +150,6 @@ func (session *RTSP) AcceptPush() {
 				continue
 			}
 			session.InBytes += rtpLen + 4
-			session.PushPack(pack)
 		} else { // rtsp cmd
 			reqBuf := bytes.NewBuffer(nil)
 			reqBuf.WriteByte(buf1)
@@ -319,22 +333,27 @@ func (session *RTSP) handleRequest(req *Request) {
 		session.SDPMap = ParseSDP(req.Body)
 		if session.Publish(streamPath) {
 			if session.ASdp, session.HasAudio = session.SDPMap["audio"]; session.HasAudio {
+				at := NewAudioTrack()
 				if len(session.ASdp.Control) > 0 {
-					session.WriteASC(session.ASdp.Config)
+					at.SetASC(session.ASdp.Config)
 				} else {
-					session.setAudioFormat()
+					session.setAudioFormat(at)
 				}
+				session.SetOriginAT(at)
 				Printf("audio codec[%s]\n", session.ASdp.Codec)
 			}
 			if session.VSdp, session.HasVideo = session.SDPMap["video"]; session.HasVideo {
 				if len(session.VSdp.SpropParameterSets) > 1 {
-					session.WriteSPS(session.VSdp.SpropParameterSets[0])
-					session.WritePPS(session.VSdp.SpropParameterSets[1])
+					vt := NewVideoTrack()
+					vt.CodecID = 7
+					vt.Push(0, session.VSdp.SpropParameterSets[0])
+					vt.Push(0, session.VSdp.SpropParameterSets[1])
+					vt.SPSInfo, err = codec.ParseSPS(vt.SPS)
+					session.SetOriginVT(vt)
 				}
 				Printf("video codec[%s]\n", session.VSdp.Codec)
 			}
 			session.Stream.Type = "RTSP"
-			session.RTSPInfo.StreamInfo = &session.Stream.StreamInfo
 			collection.Store(streamPath, session)
 		}
 	case "DESCRIBE":
