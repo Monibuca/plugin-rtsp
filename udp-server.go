@@ -25,15 +25,15 @@ func (s *UDPServer) AddInputBytes(bytes int) {
 	panic(fmt.Errorf("session and RTSPClient both nil"))
 }
 
-func (s *UDPServer) HandleRTP(pack *RTPPack) {
-	s.Lock()
-	defer s.Unlock()
+func (s *UDPServer) HandleRTP(pack RTPPack) {
 	if s.Session != nil {
+		s.Lock()
+		defer s.Unlock()
 		switch pack.Type {
 		case RTP_TYPE_AUDIO:
-			s.Session.OriginAudioTrack.Push(pack.Timestamp,pack.Payload)
+			s.Session.OriginAudioTrack.PushRTP(pack.Packet)
 		case RTP_TYPE_VIDEO:
-			s.Session.OriginVideoTrack.Push(pack.Timestamp,pack.Payload)
+			s.Session.OriginVideoTrack.PushRTP(pack.Packet)
 		}
 	}
 }
@@ -96,7 +96,7 @@ func (s *UDPServer) SetupAudio() (err error) {
 					timer = time.Now()
 				}
 				s.AddInputBytes(n)
-				pack := &RTPPack{
+				pack := RTPPack{
 					Type: RTP_TYPE_AUDIO,
 				}
 				pack.Unmarshal(bufUDP[:n])
@@ -135,7 +135,7 @@ func (s *UDPServer) SetupAudio() (err error) {
 			if n, _, err := s.AControlConn.ReadFromUDP(bufUDP); err == nil {
 				//Printf("Package recv from AControlConn.len:%d\n", n)
 				s.AddInputBytes(n)
-				pack := &RTPPack{
+				pack := RTPPack{
 					Type: RTP_TYPE_AUDIOCONTROL,
 				}
 				pack.Unmarshal(bufUDP[:n])
@@ -184,7 +184,7 @@ func (s *UDPServer) SetupVideo() (err error) {
 					timer = time.Now()
 				}
 				s.AddInputBytes(n)
-				pack := &RTPPack{
+				pack := RTPPack{
 					Type: RTP_TYPE_VIDEO,
 				}
 				pack.Unmarshal(bufUDP[:n])
@@ -224,7 +224,7 @@ func (s *UDPServer) SetupVideo() (err error) {
 			if n, _, err := s.VControlConn.ReadFromUDP(bufUDP); err == nil {
 				//Printf("Package recv from VControlConn.len:%d\n", n)
 				s.AddInputBytes(n)
-				pack := &RTPPack{
+				pack := RTPPack{
 					Type: RTP_TYPE_VIDEOCONTROL,
 				}
 				pack.Unmarshal(bufUDP[:n])

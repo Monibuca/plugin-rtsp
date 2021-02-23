@@ -124,6 +124,8 @@ func (session *RTSP) AcceptPush() {
 				Println(err)
 				return
 			}
+			t := pack.Timestamp / 90
+			Println(t,pack.SequenceNumber)
 			switch channel {
 			case session.aRTPChannel:
 				pack.Type = RTP_TYPE_AUDIO
@@ -132,7 +134,9 @@ func (session *RTSP) AcceptPush() {
 					Println("Recv an audio RTP package")
 					timer = time.Now()
 				}
-				session.OriginAudioTrack.Push(pack.Timestamp,pack.Payload)
+				for _, payload := range codec.ParseRTPAAC(pack.Payload) {
+					session.OriginAudioTrack.Push(t, payload)
+				}
 			case session.aRTPControlChannel:
 				pack.Type = RTP_TYPE_AUDIOCONTROL
 			case session.vRTPChannel:
@@ -142,7 +146,7 @@ func (session *RTSP) AcceptPush() {
 					Println("Recv an video RTP package")
 					timer = time.Now()
 				}
-				session.OriginVideoTrack.Push(pack.Timestamp,pack.Payload)
+				session.OriginVideoTrack.Push(VideoPack{Timestamp: t, Payload: pack.Payload})
 			case session.vRTPControlChannel:
 				pack.Type = RTP_TYPE_VIDEOCONTROL
 			default:
@@ -346,8 +350,11 @@ func (session *RTSP) handleRequest(req *Request) {
 				if len(session.VSdp.SpropParameterSets) > 1 {
 					vt := NewVideoTrack()
 					vt.CodecID = 7
-					vt.Push(0, session.VSdp.SpropParameterSets[0])
-					vt.Push(0, session.VSdp.SpropParameterSets[1])
+					var pack VideoPack
+					pack.Payload = session.VSdp.SpropParameterSets[0]
+					vt.Push(pack)
+					pack.Payload = session.VSdp.SpropParameterSets[1]
+					vt.Push(pack)
 					vt.SPSInfo, err = codec.ParseSPS(vt.SPS)
 					session.SetOriginVT(vt)
 				}

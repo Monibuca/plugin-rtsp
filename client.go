@@ -219,8 +219,11 @@ func (client *RTSP) requestStream() (err error) {
 			if len(sdpInfo.SpropParameterSets) > 1 {
 				vt := NewVideoTrack()
 				vt.CodecID = 7
-				vt.Push(0, sdpInfo.SpropParameterSets[0])
-				vt.Push(0, sdpInfo.SpropParameterSets[1])
+				var pack VideoPack
+				pack.Payload = sdpInfo.SpropParameterSets[0]
+				vt.Push(pack)
+				pack.Payload = sdpInfo.SpropParameterSets[1]
+				vt.Push(pack)
 				client.SetOriginVT(vt)
 			}
 			if client.TransType == TRANS_TYPE_TCP {
@@ -340,11 +343,11 @@ func (client *RTSP) startStream() {
 			pack.Unmarshal(content)
 			switch channel {
 			case client.aRTPChannel:
-				client.OriginAudioTrack.Push(pack.Timestamp, pack.Payload)
+				client.OriginAudioTrack.PushRTP(pack)
 			case client.aRTPControlChannel:
 
 			case client.vRTPChannel:
-				client.OriginVideoTrack.Push(pack.Timestamp, pack.Payload)
+				client.OriginVideoTrack.PushRTP(pack)
 			case client.vRTPControlChannel:
 
 			default:
