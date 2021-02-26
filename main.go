@@ -42,7 +42,7 @@ func init() {
 }
 func runPlugin() {
 
-	http.HandleFunc("/rtsp/list", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/rtsp/list", func(w http.ResponseWriter, r *http.Request) {
 		sse := NewSSE(w, r.Context())
 		var err error
 		for tick := time.NewTicker(time.Second); err == nil; <-tick.C {
@@ -55,8 +55,8 @@ func runPlugin() {
 			err = sse.WriteJSON(info)
 		}
 	})
-	http.HandleFunc("/rtsp/pull", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+	http.HandleFunc("/api/rtsp/pull", func(w http.ResponseWriter, r *http.Request) {
+		CORS(w, r)
 		targetURL := r.URL.Query().Get("target")
 		streamPath := r.URL.Query().Get("streamPath")
 		if err := new(RTSP).PullStream(streamPath, targetURL); err == nil {
