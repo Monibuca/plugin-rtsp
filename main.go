@@ -2,6 +2,7 @@ package rtsp
 
 import (
 	"bufio"
+	"embed"
 	"fmt"
 	"log"
 	"net"
@@ -28,11 +29,16 @@ var config = struct {
 	}
 }{":554", false, "rtsp://localhost/${streamPath}", 0, false, nil}
 
+//go:embed ui/*
+//go:embed README.md
+var ui embed.FS
+
 func init() {
 	InstallPlugin(&PluginConfig{
 		Name:   "RTSP",
 		Config: &config,
 		Run:    runPlugin,
+		UIFile: &ui,
 		HotConfig: map[string]func(interface{}){
 			"AutoPull": func(value interface{}) {
 				config.AutoPull = value.(bool)

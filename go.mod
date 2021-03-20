@@ -1,6 +1,6 @@
 module github.com/Monibuca/plugin-rtsp/v3
 
-go 1.13
+go 1.16
 
 require (
 	github.com/Monibuca/engine/v3 v3.0.0-alpha6
