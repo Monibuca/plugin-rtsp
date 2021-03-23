@@ -2,6 +2,7 @@ package rtsp
 
 import (
 	"bufio"
+	"embed"
 	"fmt"
 	"log"
 	"net"
@@ -16,6 +17,9 @@ import (
 	"github.com/teris-io/shortid"
 )
 
+//go:embed ui/*
+//go:embed README.md
+var ui embed.FS
 var collection sync.Map
 var config = struct {
 	ListenAddr   string
@@ -40,6 +44,7 @@ func init() {
 				config.AutoPull = value.(bool)
 			},
 		},
+		UIFile: &ui,
 	})
 }
 func runPlugin() {
