@@ -18,13 +18,15 @@ import (
 
 	. "github.com/Monibuca/engine/v3"
 	. "github.com/Monibuca/utils/v3"
-	"github.com/pion/rtp"
 )
 
 // PullStream 从外部拉流
 func (rtsp *RTSP) PullStream(streamPath string, rtspUrl string) (err error) {
-	if result := rtsp.Publish(streamPath); result {
-		rtsp.Stream.Type = "RTSP"
+	rtsp.Stream = &Stream{
+		StreamPath: streamPath,
+		Type:       "RTSP Pull",
+	}
+	if result := rtsp.Publish(); result {
 		rtsp.TransType = TRANS_TYPE_TCP
 		rtsp.vRTPChannel = 0
 		rtsp.vRTPControlChannel = 1
@@ -217,14 +219,12 @@ func (client *RTSP) requestStream() (err error) {
 		switch t {
 		case "video":
 			if len(sdpInfo.SpropParameterSets) > 1 {
-				vt := NewVideoTrack()
-				vt.CodecID = 7
-				var pack VideoPack
-				pack.Payload = sdpInfo.SpropParameterSets[0]
-				vt.Push(pack)
-				pack.Payload = sdpInfo.SpropParameterSets[1]
-				vt.Push(pack)
-				client.SetOriginVT(vt)
+				client.RtpVideo = client.NewRTPVideo(7)
+				client.RtpVideo.PushNalu(VideoPack{NALUs: sdpInfo.SpropParameterSets})
+			} else if client.VSdp.Codec == "H264" {
+				client.RtpVideo = client.NewRTPVideo(7)
+			} else if client.VSdp.Codec == "H265" {
+				client.RtpVideo = client.NewRTPVideo(12)
 			}
 			if client.TransType == TRANS_TYPE_TCP {
 				headers["Transport"] = fmt.Sprintf("RTP/AVP/TCP;unicast;interleaved=%d-%d", client.vRTPChannel, client.vRTPControlChannel)
@@ -238,13 +238,13 @@ func (client *RTSP) requestStream() (err error) {
 				client.Conn.timeout = 0 //	UDP ignore timeout
 			}
 		case "audio":
-			at := NewAudioTrack()
-			if len(sdpInfo.Config) > 0 {
-				at.SetASC(sdpInfo.Config)
+			client.RtpAudio = client.NewRTPAudio(0)
+			at := client.RtpAudio.AudioTrack
+			if len(client.ASdp.Control) > 0 {
+				at.SetASC(client.ASdp.Config)
 			} else {
 				client.setAudioFormat(at)
 			}
-			client.SetOriginAT(at)
 			if client.TransType == TRANS_TYPE_TCP {
 				headers["Transport"] = fmt.Sprintf("RTP/AVP/TCP;unicast;interleaved=%d-%d", client.aRTPChannel, client.aRTPControlChannel)
 			} else {
@@ -339,15 +339,14 @@ func (client *RTSP) startStream() {
 				Printf("io.ReadFull err:%v", err)
 				return
 			}
-			var pack rtp.Packet
-			pack.Unmarshal(content)
+			
 			switch channel {
 			case client.aRTPChannel:
-				client.OriginAudioTrack.PushRTP(pack)
+				client.RtpAudio.Push(content)
 			case client.aRTPControlChannel:
 
 			case client.vRTPChannel:
-				client.OriginVideoTrack.PushRTP(pack)
+				client.RtpVideo.Push(content)
 			case client.vRTPControlChannel:
 
 			default:

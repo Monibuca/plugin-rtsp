@@ -114,43 +114,42 @@ func (session *RTSP) AcceptPush() {
 			}
 			channel := int(buf1)
 			rtpLen := int(binary.BigEndian.Uint16(buf2))
-			pack := new(RTPPack)
 			rtpBytes := make([]byte, rtpLen)
 			if _, err := io.ReadFull(session.connRW, rtpBytes); err != nil {
 				Println(err)
 				return
 			}
-			if err = pack.Unmarshal(rtpBytes); err != nil {
-				Println(err)
-				return
-			}
-			t := pack.Timestamp / 90
-			Println(t,pack.SequenceNumber)
+
+			// t := pack.Timestamp / 90
 			switch channel {
 			case session.aRTPChannel:
-				pack.Type = RTP_TYPE_AUDIO
-				elapsed := time.Now().Sub(timer)
+				// pack.Type = RTP_TYPE_AUDIO
+				elapsed := time.Since(timer)
 				if elapsed >= 30*time.Second {
 					Println("Recv an audio RTP package")
 					timer = time.Now()
 				}
-				for _, payload := range codec.ParseRTPAAC(pack.Payload) {
-					session.OriginAudioTrack.Push(t, payload)
+				if session.RtpAudio.CodecID == 10 {
+					for _, payload := range codec.ParseRTPAAC(rtpBytes) {
+						session.RtpAudio.Push(payload)
+					}
+				} else {
+					session.RtpAudio.Push(rtpBytes)
 				}
 			case session.aRTPControlChannel:
-				pack.Type = RTP_TYPE_AUDIOCONTROL
+				// pack.Type = RTP_TYPE_AUDIOCONTROL
 			case session.vRTPChannel:
-				pack.Type = RTP_TYPE_VIDEO
-				elapsed := time.Now().Sub(timer)
+				// pack.Type = RTP_TYPE_VIDEO
+				elapsed := time.Since(timer)
 				if elapsed >= 30*time.Second {
 					Println("Recv an video RTP package")
 					timer = time.Now()
 				}
-				session.OriginVideoTrack.Push(VideoPack{Timestamp: t, Payload: pack.Payload})
+				session.RtpVideo.Push(rtpBytes)
 			case session.vRTPControlChannel:
-				pack.Type = RTP_TYPE_VIDEOCONTROL
+				// pack.Type = RTP_TYPE_VIDEOCONTROL
 			default:
-				Printf("unknow rtp pack type, %v", pack.Type)
+				//	Printf("unknow rtp pack type, %v", pack.Type)
 				continue
 			}
 			session.InBytes += rtpLen + 4
@@ -335,28 +334,30 @@ func (session *RTSP) handleRequest(req *Request) {
 
 		session.SDPRaw = req.Body
 		session.SDPMap = ParseSDP(req.Body)
-		if session.Publish(streamPath) {
+		stream := &Stream{
+			StreamPath: streamPath,
+			Type:       "RTSP",
+		}
+		session.Stream = stream
+		if session.Publish() {
 			if session.ASdp, session.HasAudio = session.SDPMap["audio"]; session.HasAudio {
-				at := NewAudioTrack()
+				session.RtpAudio = stream.NewRTPAudio(0)
+				at := session.RtpAudio.AudioTrack
 				if len(session.ASdp.Control) > 0 {
 					at.SetASC(session.ASdp.Config)
 				} else {
 					session.setAudioFormat(at)
 				}
-				session.SetOriginAT(at)
 				Printf("audio codec[%s]\n", session.ASdp.Codec)
 			}
 			if session.VSdp, session.HasVideo = session.SDPMap["video"]; session.HasVideo {
 				if len(session.VSdp.SpropParameterSets) > 1 {
-					vt := NewVideoTrack()
-					vt.CodecID = 7
-					var pack VideoPack
-					pack.Payload = session.VSdp.SpropParameterSets[0]
-					vt.Push(pack)
-					pack.Payload = session.VSdp.SpropParameterSets[1]
-					vt.Push(pack)
-					vt.SPSInfo, err = codec.ParseSPS(vt.SPS)
-					session.SetOriginVT(vt)
+					session.RtpVideo = stream.NewRTPVideo(7)
+					session.RtpVideo.PushNalu(VideoPack{NALUs: session.VSdp.SpropParameterSets})
+				} else if session.VSdp.Codec == "H264" {
+					session.RtpVideo = stream.NewRTPVideo(7)
+				} else if session.VSdp.Codec == "H265" {
+					session.RtpVideo = stream.NewRTPVideo(12)
 				}
 				Printf("video codec[%s]\n", session.VSdp.Codec)
 			}

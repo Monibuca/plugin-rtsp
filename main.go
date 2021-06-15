@@ -6,7 +6,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -75,12 +74,12 @@ func runPlugin() {
 	if config.ListenAddr != "" {
 		go log.Fatal(ListenRtsp(config.ListenAddr))
 	}
-	AddHook(HOOK_SUBSCRIBE, func(value interface{}) {
-		s := value.(*Subscriber)
-		if config.AutoPull && s.Publisher == nil {
-			new(RTSP).PullStream(s.StreamPath, strings.Replace(config.RemoteAddr, "${streamPath}", s.StreamPath, -1))
-		}
-	})
+	// AddHook(HOOK_SUBSCRIBE, func(value interface{}) {
+	// 	s := value.(*Subscriber)
+	// 	if config.AutoPull && s.Publisher == nil {
+	// 		new(RTSP).PullStream(s.StreamPath, strings.Replace(config.RemoteAddr, "${streamPath}", s.StreamPath, -1))
+	// 	}
+	// })
 }
 
 func ListenRtsp(addr string) error {
@@ -129,7 +128,7 @@ func ListenRtsp(addr string) error {
 }
 
 type RTSP struct {
-	Publisher
+	*Stream
 	URL      string
 	SDPRaw   string
 	InBytes  int
@@ -159,21 +158,27 @@ type RTSP struct {
 	Auth               func(string) string `json:"-"`
 	HasVideo           bool
 	HasAudio           bool
+	RtpAudio           *RTPAudio
+	RtpVideo           *RTPVideo
 }
 
 func (rtsp *RTSP) setAudioFormat(at *AudioTrack) {
 	switch rtsp.ASdp.Codec {
 	case "aac":
-		at.SoundFormat = 10
+		at.CodecID = 10
 	case "pcma":
-		at.SoundFormat = 7
+		at.CodecID = 7
 		at.SoundRate = rtsp.ASdp.TimeScale
 		at.SoundSize = 16
 	case "pcmu":
-		at.SoundFormat = 8
+		at.CodecID = 8
 		at.SoundRate = rtsp.ASdp.TimeScale
 		at.SoundSize = 16
+	default:
+		Printf("rtsp audio codec not support:%s", rtsp.ASdp.Codec)
+		return
 	}
+	rtsp.AudioTracks.AddTrack(rtsp.ASdp.Codec, at)
 }
 
 type RTSPClientInfo struct {
