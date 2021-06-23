@@ -341,24 +341,11 @@ func (session *RTSP) handleRequest(req *Request) {
 		session.Stream = stream
 		if session.Publish() {
 			if session.ASdp, session.HasAudio = session.SDPMap["audio"]; session.HasAudio {
-				session.RtpAudio = stream.NewRTPAudio(0)
-				at := session.RtpAudio.AudioTrack
-				if len(session.ASdp.Control) > 0 {
-					at.SetASC(session.ASdp.Config)
-				} else {
-					session.setAudioFormat(at)
-				}
+				session.setAudioTrack()
 				Printf("audio codec[%s]\n", session.ASdp.Codec)
 			}
 			if session.VSdp, session.HasVideo = session.SDPMap["video"]; session.HasVideo {
-				if len(session.VSdp.SpropParameterSets) > 1 {
-					session.RtpVideo = stream.NewRTPVideo(7)
-					session.RtpVideo.PushNalu(VideoPack{NALUs: session.VSdp.SpropParameterSets})
-				} else if session.VSdp.Codec == "H264" {
-					session.RtpVideo = stream.NewRTPVideo(7)
-				} else if session.VSdp.Codec == "H265" {
-					session.RtpVideo = stream.NewRTPVideo(12)
-				}
+				session.setVideoTrack()
 				Printf("video codec[%s]\n", session.VSdp.Codec)
 			}
 			session.Stream.Type = "RTSP"

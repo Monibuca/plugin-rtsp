@@ -218,14 +218,7 @@ func (client *RTSP) requestStream() (err error) {
 		}
 		switch t {
 		case "video":
-			if len(sdpInfo.SpropParameterSets) > 1 {
-				client.RtpVideo = client.NewRTPVideo(7)
-				client.RtpVideo.PushNalu(VideoPack{NALUs: sdpInfo.SpropParameterSets})
-			} else if client.VSdp.Codec == "H264" {
-				client.RtpVideo = client.NewRTPVideo(7)
-			} else if client.VSdp.Codec == "H265" {
-				client.RtpVideo = client.NewRTPVideo(12)
-			}
+			client.setVideoTrack()
 			if client.TransType == TRANS_TYPE_TCP {
 				headers["Transport"] = fmt.Sprintf("RTP/AVP/TCP;unicast;interleaved=%d-%d", client.vRTPChannel, client.vRTPControlChannel)
 			} else {
@@ -238,13 +231,7 @@ func (client *RTSP) requestStream() (err error) {
 				client.Conn.timeout = 0 //	UDP ignore timeout
 			}
 		case "audio":
-			client.RtpAudio = client.NewRTPAudio(0)
-			at := client.RtpAudio.AudioTrack
-			if len(client.ASdp.Control) > 0 {
-				at.SetASC(client.ASdp.Config)
-			} else {
-				client.setAudioFormat(at)
-			}
+			client.setAudioTrack()
 			if client.TransType == TRANS_TYPE_TCP {
 				headers["Transport"] = fmt.Sprintf("RTP/AVP/TCP;unicast;interleaved=%d-%d", client.aRTPChannel, client.aRTPControlChannel)
 			} else {

@@ -141,13 +141,11 @@ type RTSP struct {
 	Type      SessionType
 	TransType TransType
 
-	SDPMap   map[string]*SDPInfo
-	nonce    string
-	closeOld bool
-	ASdp     *SDPInfo
-	VSdp     *SDPInfo
-	aacsent  bool
-	Timeout  int
+	SDPMap  map[string]*SDPInfo
+	nonce   string
+	ASdp    *SDPInfo
+	VSdp    *SDPInfo
+	Timeout int
 	//tcp channels
 	aRTPChannel        int
 	aRTPControlChannel int
@@ -162,23 +160,42 @@ type RTSP struct {
 	RtpVideo           *RTPVideo
 }
 
-func (rtsp *RTSP) setAudioFormat(at *AudioTrack) {
-	switch rtsp.ASdp.Codec {
-	case "aac":
-		at.CodecID = 10
-	case "pcma":
-		at.CodecID = 7
-		at.SoundRate = rtsp.ASdp.TimeScale
-		at.SoundSize = 16
-	case "pcmu":
-		at.CodecID = 8
-		at.SoundRate = rtsp.ASdp.TimeScale
-		at.SoundSize = 16
-	default:
-		Printf("rtsp audio codec not support:%s", rtsp.ASdp.Codec)
-		return
+func (rtsp *RTSP) setVideoTrack() {
+	if rtsp.VSdp.Codec == "H264" {
+		rtsp.RtpVideo = rtsp.NewRTPVideo(7)
+		if len(rtsp.VSdp.SpropParameterSets) > 1 {
+			rtsp.RtpVideo.PushNalu(VideoPack{NALUs: rtsp.VSdp.SpropParameterSets})
+		}
+	} else if rtsp.VSdp.Codec == "H265" {
+		rtsp.RtpVideo = rtsp.NewRTPVideo(12)
+		if len(rtsp.VSdp.VPS) > 0 {
+			rtsp.RtpVideo.PushNalu(VideoPack{NALUs: [][]byte{rtsp.VSdp.VPS, rtsp.ASdp.SPS, rtsp.ASdp.PPS}})
+		}
 	}
-	rtsp.AudioTracks.AddTrack(rtsp.ASdp.Codec, at)
+}
+func (rtsp *RTSP) setAudioTrack() {
+	var at *RTPAudio
+	if len(rtsp.ASdp.Control) > 0 {
+		at = rtsp.NewRTPAudio(0)
+		at.SetASC(rtsp.ASdp.Config)
+	} else {
+		switch rtsp.ASdp.Codec {
+		case "AAC":
+			at = rtsp.NewRTPAudio(10)
+		case "PCMA":
+			at = rtsp.NewRTPAudio(7)
+			at.SoundRate = rtsp.ASdp.TimeScale
+			at.SoundSize = 16
+		case "PCMU":
+			at = rtsp.NewRTPAudio(8)
+			at.SoundRate = rtsp.ASdp.TimeScale
+			at.SoundSize = 16
+		default:
+			Printf("rtsp audio codec not support:%s", rtsp.ASdp.Codec)
+			return
+		}
+	}
+	rtsp.RtpAudio = at
 }
 
 type RTSPClientInfo struct {

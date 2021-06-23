@@ -15,6 +15,9 @@ type SDPInfo struct {
 	Rtpmap             int
 	Config             []byte
 	SpropParameterSets [][]byte
+	VPS                []byte
+	PPS                []byte
+	SPS                []byte
 	PayloadType        int
 	SizeLength         int
 	IndexLength        int
@@ -54,18 +57,10 @@ func ParseSDP(sdpRaw string) map[string]*SDPInfo {
 						}
 						keyval = strings.Split(field, "/")
 						if len(keyval) >= 2 {
-							key := keyval[0]
-							switch key {
-							case "PCMA":
-								info.Codec = "pcma"
-							case "PCMU":
-								info.Codec = "pcmu"
+							info.Codec = keyval[0]
+							switch info.Codec {
 							case "MPEG4-GENERIC":
-								info.Codec = "aac"
-							case "H264":
-								info.Codec = "h264"
-							case "H265":
-								info.Codec = "h265"
+								info.Codec = "AAC"
 							}
 							if i, err := strconv.Atoi(keyval[1]); err == nil {
 								info.TimeScale = i
@@ -85,6 +80,12 @@ func ParseSDP(sdpRaw string) map[string]*SDPInfo {
 										info.SizeLength, _ = strconv.Atoi(val)
 									case "indexlength":
 										info.IndexLength, _ = strconv.Atoi(val)
+									case "sprop-vps":
+										info.VPS, _ = base64.StdEncoding.DecodeString(field)
+									case "sprop-sps":
+										info.SPS, _ = base64.StdEncoding.DecodeString(field)
+									case "sprop-pps":
+										info.PPS, _ = base64.StdEncoding.DecodeString(field)
 									case "sprop-parameter-sets":
 										fields := strings.Split(val, ",")
 										for _, field := range fields {
