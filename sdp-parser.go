@@ -82,11 +82,11 @@ func ParseSDP(sdpRaw string) map[string]*SDPInfo {
 									case "indexlength":
 										info.IndexLength, _ = strconv.Atoi(val)
 									case "sprop-vps":
-										info.VPS, _ = base64.StdEncoding.DecodeString(field)
+										info.VPS, _ = base64.StdEncoding.DecodeString(val)
 									case "sprop-sps":
-										info.SPS, _ = base64.StdEncoding.DecodeString(field)
+										info.SPS, _ = base64.StdEncoding.DecodeString(val)
 									case "sprop-pps":
-										info.PPS, _ = base64.StdEncoding.DecodeString(field)
+										info.PPS, _ = base64.StdEncoding.DecodeString(val)
 									case "sprop-parameter-sets":
 										fields := strings.Split(val, ",")
 										for _, field := range fields {
