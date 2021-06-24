@@ -169,7 +169,7 @@ func (rtsp *RTSP) setVideoTrack() {
 	} else if rtsp.VSdp.Codec == "H265" {
 		rtsp.RtpVideo = rtsp.NewRTPVideo(12)
 		if len(rtsp.VSdp.VPS) > 0 {
-			rtsp.RtpVideo.PushNalu(VideoPack{NALUs: [][]byte{rtsp.VSdp.VPS, rtsp.ASdp.SPS, rtsp.ASdp.PPS}})
+			rtsp.RtpVideo.PushNalu(VideoPack{NALUs: [][]byte{rtsp.VSdp.VPS, rtsp.VSdp.SPS, rtsp.VSdp.PPS}})
 		}
 	}
 }
