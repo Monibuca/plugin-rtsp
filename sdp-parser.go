@@ -60,6 +60,8 @@ func ParseSDP(sdpRaw string) map[string]*SDPInfo {
 							switch keyval[0] {
 							case "H264", "H265", "PCMA", "PCMU":
 								info.Codec = keyval[0]
+							case "HEVC":
+								info.Codec = "H265"
 							case "MPEG4-GENERIC":
 								info.Codec = "AAC"
 							}

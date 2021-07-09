@@ -14,7 +14,6 @@ import (
 
 	. "github.com/Monibuca/engine/v3"
 	. "github.com/Monibuca/utils/v3"
-	"github.com/Monibuca/utils/v3/codec"
 	"github.com/pion/rtp"
 	"github.com/teris-io/shortid"
 )
@@ -129,13 +128,7 @@ func (session *RTSP) AcceptPush() {
 					Println("Recv an audio RTP package")
 					timer = time.Now()
 				}
-				if session.RtpAudio.CodecID == 10 {
-					for _, payload := range codec.ParseRTPAAC(rtpBytes) {
-						session.RtpAudio.Push(payload)
-					}
-				} else {
-					session.RtpAudio.Push(rtpBytes)
-				}
+				session.RtpAudio.Push(rtpBytes)
 			case session.aRTPControlChannel:
 				// pack.Type = RTP_TYPE_AUDIOCONTROL
 			case session.vRTPChannel:
