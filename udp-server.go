@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	. "github.com/Monibuca/utils/v3"
 )
@@ -74,16 +73,17 @@ func (s *UDPServer) SetupAudio() (err error) {
 		bufUDP := make([]byte, UDP_BUF_SIZE)
 		Printf("udp server start listen audio port[%d]", s.APort)
 		defer Printf("udp server stop listen audio port[%d]", s.APort)
-		timer := time.Unix(0, 0)
+		// timer := time.Unix(0, 0)
 		for !s.Stoped {
 			if n, _, err := s.AConn.ReadFromUDP(bufUDP); err == nil {
-				elapsed := time.Now().Sub(timer)
-				if elapsed >= 30*time.Second {
-					Printf("Package recv from AConn.len:%d\n", n)
-					timer = time.Now()
-				}
+				// elapsed := time.Now().Sub(timer)
+				// if elapsed >= 30*time.Second {
+				// 	Printf("Package recv from AConn.len:%d\n", n)
+				// 	timer = time.Now()
+				// }
 				s.AddInputBytes(n)
-				s.Session.RtpAudio.Push(bufUDP[:n])
+				var bytes []byte
+				s.Session.RtpAudio.Push(append(bytes, bufUDP[:n]...))
 			} else {
 				Println("udp server read audio pack error", err)
 				continue
@@ -158,16 +158,17 @@ func (s *UDPServer) SetupVideo() (err error) {
 		bufUDP := make([]byte, UDP_BUF_SIZE)
 		Printf("udp server start listen video port[%d]", s.VPort)
 		defer Printf("udp server stop listen video port[%d]", s.VPort)
-		timer := time.Unix(0, 0)
+		// timer := time.Unix(0, 0)
 		for !s.Stoped {
 			if n, _, err := s.VConn.ReadFromUDP(bufUDP); err == nil {
-				elapsed := time.Now().Sub(timer)
-				if elapsed >= 30*time.Second {
-					Printf("Package recv from VConn.len:%d\n", n)
-					timer = time.Now()
-				}
+				// elapsed := time.Now().Sub(timer)
+				// if elapsed >= 30*time.Second {
+				// 	Printf("Package recv from VConn.len:%d\n", n)
+				// 	timer = time.Now()
+				// }
 				s.AddInputBytes(n)
-				s.Session.RtpVideo.Push(bufUDP[:n])
+				var bytes []byte
+				s.Session.RtpVideo.Push(append(bytes, bufUDP[:n]...))
 			} else {
 				Println("udp server read video pack error", err)
 				continue
