@@ -1,29 +1,63 @@
-# Monibuca 的RTSP 插件
+# RTSP插件
 
-主要功能是提供RTSP的端口监听接受RTSP推流，以及对RTSP地址进行拉流转发
+## 插件地址
 
-## 插件名称
+github.com/Monibuca/plugin-rtsp
 
-RTSP
+## 插件引入
+```go
+import (
+    _ "github.com/Monibuca/plugin-rtsp"
+)
+```
 
-## 配置
+## 默认插件配置
+
 ```toml
 [RTSP]
-ListenAddr  = ":554"
-BufferLength  = 2048
-AutoPull     = false
-RemoteAddr   = "rtsp://localhost/${streamPath}"
+# 端口接收推流
+ListenAddr = ":554"
+Reconnect = true
 [[RTSP.AutoPullList]]
 URL = "rtsp://admin:admin@192.168.1.212:554/cam/realmonitor?channel=1&subtype=1"
-StreamPath = "live/rtsp"
+StreamPath = "live/rtsp1"
+[[RTSP.AutoPullList]]
+URL = "rtsp://admin:admin@192.168.1.212:554/cam/realmonitor?channel=2&subtype=1"
+StreamPath = "live/rtsp2"
 ```
-- ListenAddr 是监听端口，可以将rtsp流推到Monibuca中
-- BufferLength是指解析拉取的rtp包的缓冲大小
-- AutoPull是指当有用户订阅一个新流的时候自动向远程拉流转发
-- RemoteAddr 指远程拉流地址，其中${streamPath}是占位符，实际使用流路径替换。
-- AutoPullList 是一个数组，如果配置了该数组，则会在程序启动时自动启动拉流，StreamPath一定要是唯一的，不能重复
 
-## 使用方法(拉流转发)
+- `ListenAddr`是监听的地址
+- `Reconnect` 是否自动重连
+- `RTSP.AutoPullList` 可以配置多项，用于自动拉流，其中`StreamPath`必须是唯一的，自动拉流会在程序启动是自动发起
+
+## 插件功能
+
+### 接收RTSP协议的推流
+
+例如通过ffmpeg向m7s进行推流
+
+```bash
+ffmpeg -i **** rtsp://localhost/live/test
+```
+
+会在m7s内部形成一个名为live/test的流
+
+### 从远程拉取rtsp到m7s中
+
+可调用接口
+`/api/rtsp/pull?target=[RTSP地址]&streamPath=[流标识]`
+
+## 使用编程方式拉流
 ```go
 new(RTSP).PullStream("live/user1","rtsp://xxx.xxx.xxx.xxx/live/user1") 
 ```
+
+### 罗列所有的rtsp协议的流
+
+可调用接口
+`/api/rtsp/list`
+
+### 从m7s中拉取rtsp协议流
+
+该功能尚未开发完成
+
