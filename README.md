@@ -18,17 +18,14 @@ import (
 # 端口接收推流
 ListenAddr = ":554"
 Reconnect = true
-[[RTSP.AutoPullList]]
-URL = "rtsp://admin:admin@192.168.1.212:554/cam/realmonitor?channel=1&subtype=1"
-StreamPath = "live/rtsp1"
-[[RTSP.AutoPullList]]
-URL = "rtsp://admin:admin@192.168.1.212:554/cam/realmonitor?channel=2&subtype=1"
-StreamPath = "live/rtsp2"
+[RTSP.AutoPullList]
+"live/rtsp1" = "rtsp://admin:admin@192.168.1.212:554/cam/realmonitor?channel=1&subtype=1"
+"live/rtsp2" = "rtsp://admin:admin@192.168.1.212:554/cam/realmonitor?channel=2&subtype=1"
 ```
 
 - `ListenAddr`是监听的地址
 - `Reconnect` 是否自动重连
-- `RTSP.AutoPullList` 可以配置多项，用于自动拉流，其中`StreamPath`必须是唯一的，自动拉流会在程序启动是自动发起
+- `RTSP.AutoPullList` 可以配置多项，用于自动拉流，key是streamPath，value是远程rtsp地址
 
 ## 插件功能
 

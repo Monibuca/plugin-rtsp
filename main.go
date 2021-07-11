@@ -21,10 +21,7 @@ var config = struct {
 	RemoteAddr   string
 	Timeout      int
 	Reconnect    bool
-	AutoPullList []*struct {
-		URL        string
-		StreamPath string
-	}
+	AutoPullList map[string]string
 }{":554", false, "rtsp://localhost/${streamPath}", 0, false, nil}
 
 func init() {
@@ -65,8 +62,8 @@ func runPlugin() {
 		}
 	})
 	if len(config.AutoPullList) > 0 {
-		for _, info := range config.AutoPullList {
-			if err := new(RTSP).PullStream(info.StreamPath, info.URL); err != nil {
+		for streamPath, url := range config.AutoPullList {
+			if err := new(RTSP).PullStream(streamPath, url); err != nil {
 				Println(err)
 			}
 		}
