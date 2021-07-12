@@ -58,6 +58,8 @@ func ParseSDP(sdpRaw string) map[string]*SDPInfo {
 						keyval = strings.Split(field, "/")
 						if len(keyval) >= 2 {
 							switch keyval[0] {
+							case "h264", "h265", "pcma", "pcmu":
+								info.Codec = strings.ToUpper(keyval[0])
 							case "H264", "H265", "PCMA", "PCMU":
 								info.Codec = keyval[0]
 							case "HEVC":

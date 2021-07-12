@@ -55,7 +55,7 @@ func runPlugin() {
 		CORS(w, r)
 		targetURL := r.URL.Query().Get("target")
 		streamPath := r.URL.Query().Get("streamPath")
-		if err := new(RTSP).PullStream(streamPath, targetURL); err == nil {
+		if err := (&RTSP{RTSPClientInfo: RTSPClientInfo{Agent: "Monibuca"}}).PullStream(streamPath, targetURL); err == nil {
 			w.Write([]byte(`{"code":0}`))
 		} else {
 			w.Write([]byte(fmt.Sprintf(`{"code":1,"msg":"%s"}`, err.Error())))
@@ -63,7 +63,7 @@ func runPlugin() {
 	})
 	if len(config.AutoPullList) > 0 {
 		for streamPath, url := range config.AutoPullList {
-			if err := new(RTSP).PullStream(streamPath, url); err != nil {
+			if err := (&RTSP{RTSPClientInfo: RTSPClientInfo{Agent: "Monibuca"}}).PullStream(streamPath, url); err != nil {
 				Println(err)
 			}
 		}
@@ -172,7 +172,7 @@ func (rtsp *RTSP) setVideoTrack() {
 }
 func (rtsp *RTSP) setAudioTrack() {
 	var at *RTPAudio
-	if len(rtsp.ASdp.Control) > 0 {
+	if len(rtsp.ASdp.Config) > 0 {
 		at = rtsp.NewRTPAudio(0)
 		at.SetASC(rtsp.ASdp.Config)
 	} else {
@@ -183,10 +183,14 @@ func (rtsp *RTSP) setAudioTrack() {
 			at = rtsp.NewRTPAudio(7)
 			at.SoundRate = rtsp.ASdp.TimeScale
 			at.SoundSize = 16
+			at.Channels = 1
+			at.ExtraData = []byte{(at.CodecID << 4) | (1 << 1)}
 		case "PCMU":
 			at = rtsp.NewRTPAudio(8)
 			at.SoundRate = rtsp.ASdp.TimeScale
 			at.SoundSize = 16
+			at.Channels = 1
+			at.ExtraData = []byte{(at.CodecID << 4) | (1 << 1)}
 		default:
 			Printf("rtsp audio codec not support:%s", rtsp.ASdp.Codec)
 			return

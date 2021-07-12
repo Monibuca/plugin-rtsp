@@ -157,7 +157,7 @@ func (client *RTSP) requestStream() (err error) {
 	client.Conn = &timeoutConn
 	client.connRW = bufio.NewReadWriter(bufio.NewReaderSize(&timeoutConn, networkBuffer), bufio.NewWriterSize(&timeoutConn, networkBuffer))
 
-	headers := make(map[string]string)
+	headers := map[string]string{}
 	//headers["Require"] = "implicit-play"
 	// An OPTIONS request returns the request types the server will accept.
 	resp, err := client.Request("OPTIONS", headers)
@@ -326,7 +326,7 @@ func (client *RTSP) startStream() {
 				Printf("io.ReadFull err:%v", err)
 				return
 			}
-			
+
 			switch channel {
 			case client.aRTPChannel:
 				client.RtpAudio.Push(content)
