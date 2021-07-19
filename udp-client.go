@@ -5,10 +5,13 @@ import (
 	"net"
 	"strings"
 
+	. "github.com/Monibuca/engine/v3"
 	. "github.com/Monibuca/utils/v3"
+	"github.com/pion/rtp"
 )
 
 type UDPClient struct {
+	Conn         net.Conn
 	APort        int
 	AConn        *net.UDPConn
 	AControlPort int
@@ -17,8 +20,11 @@ type UDPClient struct {
 	VConn        *net.UDPConn
 	VControlPort int
 	VControlConn *net.UDPConn
-
-	Stoped bool
+	AT           *AudioTrack
+	APacketizer  rtp.Packetizer
+	VT           *VideoTrack
+	VPacketizer  rtp.Packetizer
+	Stoped       bool
 }
 
 func (s *UDPClient) Stop() {
@@ -51,7 +57,7 @@ func (c *UDPClient) SetupAudio() (err error) {
 			c.Stop()
 		}
 	}()
-	host := c.AConn.RemoteAddr().String()
+	host := c.Conn.RemoteAddr().String()
 	host = host[:strings.LastIndex(host, ":")]
 	addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", host, c.APort))
 	if err != nil {
@@ -93,7 +99,7 @@ func (c *UDPClient) SetupVideo() (err error) {
 			c.Stop()
 		}
 	}()
-	host := c.VConn.RemoteAddr().String()
+	host := c.Conn.RemoteAddr().String()
 	host = host[:strings.LastIndex(host, ":")]
 	addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", host, c.VPort))
 	if err != nil {
