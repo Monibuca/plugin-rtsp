@@ -77,7 +77,6 @@ func (session *RTSP) SessionString() string {
 func (session *RTSP) Stop() {
 	if session.Stream != nil {
 		session.Close()
-		collection.Delete(session.StreamPath)
 	}
 	if session.Conn != nil {
 		session.connRW.Flush()
@@ -396,7 +395,6 @@ func (session *RTSP) handleRequest(req *Request) {
 				Printf("video codec[%s]\n", session.VSdp.Codec)
 			}
 			session.Stream.Type = "RTSP"
-			collection.Store(streamPath, session)
 		}
 	case "DESCRIBE":
 		session.Type = SESSEION_TYPE_PLAYER

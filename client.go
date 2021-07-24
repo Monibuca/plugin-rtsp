@@ -25,6 +25,7 @@ func (rtsp *RTSP) PullStream(streamPath string, rtspUrl string) (err error) {
 	rtsp.Stream = &Stream{
 		StreamPath: streamPath,
 		Type:       "RTSP Pull",
+		ExtraProp:  rtsp,
 	}
 	if result := rtsp.Publish(); result {
 		rtsp.TransType = TRANS_TYPE_TCP
@@ -34,13 +35,7 @@ func (rtsp *RTSP) PullStream(streamPath string, rtspUrl string) (err error) {
 		rtsp.aRTPControlChannel = 3
 		rtsp.URL = rtspUrl
 		rtsp.UDPServer = &UDPServer{Session: rtsp}
-		if err = rtsp.requestStream(); err != nil {
-			Println(err)
-			rtsp.Close()
-			return
-		}
 		go rtsp.startStream()
-		collection.Store(streamPath, rtsp)
 		return
 	}
 	return errors.New("publish badname")
@@ -266,34 +261,24 @@ func (client *RTSP) requestStream() (err error) {
 }
 
 func (client *RTSP) startStream() {
+	if client.Err() != nil {
+		return
+	}
 	startTime := time.Now()
 	//loggerTime := time.Now().Add(-10 * time.Second)
 	defer func() {
 		if client.Err() == nil && config.Reconnect {
 			Printf("reconnecting:%s", client.URL)
 			client.RTSPClientInfo = RTSPClientInfo{}
-			if err := client.requestStream(); err != nil {
-				t := time.NewTicker(time.Second * 5)
-				for {
-					Printf("reconnecting:%s in 5 seconds", client.URL)
-					select {
-					case <-client.Done():
-						client.Stop()
-						return
-					case <-t.C:
-						if err = client.requestStream(); err == nil {
-							go client.startStream()
-							return
-						}
-					}
-				}
-			} else {
-				go client.startStream()
-			}
+			Printf("reconnecting:%s in 5 seconds", client.URL)
+			time.AfterFunc(time.Second*5, client.startStream)
 		} else {
 			client.Stop()
 		}
 	}()
+	if err := client.requestStream(); err != nil {
+		return
+	}
 	for client.Err() == nil {
 		if time.Since(startTime) > time.Minute {
 			startTime = time.Now()

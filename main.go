@@ -14,40 +14,31 @@ import (
 	"github.com/teris-io/shortid"
 )
 
-var collection sync.Map
 var config = struct {
 	ListenAddr   string
-	AutoPull     bool
-	RemoteAddr   string
 	Timeout      int
 	Reconnect    bool
 	AutoPullList map[string]string
-}{":554", false, "rtsp://localhost/${streamPath}", 0, false, nil}
+}{":554", 0, false, nil}
 
 func init() {
 	InstallPlugin(&PluginConfig{
 		Name:   "RTSP",
 		Config: &config,
 		Run:    runPlugin,
-		HotConfig: map[string]func(interface{}){
-			"AutoPull": func(value interface{}) {
-				config.AutoPull = value.(bool)
-			},
-		},
 	})
 }
 func runPlugin() {
-
 	http.HandleFunc("/api/rtsp/list", func(w http.ResponseWriter, r *http.Request) {
 		sse := NewSSE(w, r.Context())
 		var err error
 		for tick := time.NewTicker(time.Second); err == nil; <-tick.C {
 			var info []*RTSP
-			collection.Range(func(key, value interface{}) bool {
-				rtsp := value.(*RTSP)
-				info = append(info, rtsp)
-				return true
-			})
+			for _, s := range Streams.ToList() {
+				if rtsp, ok := s.ExtraProp.(*RTSP); ok {
+					info = append(info, rtsp)
+				}
+			}
 			err = sse.WriteJSON(info)
 		}
 	})
@@ -71,12 +62,6 @@ func runPlugin() {
 	if config.ListenAddr != "" {
 		go log.Fatal(ListenRtsp(config.ListenAddr))
 	}
-	// AddHook(HOOK_SUBSCRIBE, func(value interface{}) {
-	// 	s := value.(*Subscriber)
-	// 	if config.AutoPull && s.Publisher == nil {
-	// 		new(RTSP).PullStream(s.StreamPath, strings.Replace(config.RemoteAddr, "${streamPath}", s.StreamPath, -1))
-	// 	}
-	// })
 }
 
 func ListenRtsp(addr string) error {
