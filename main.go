@@ -110,7 +110,7 @@ func ListenRtsp(addr string) error {
 }
 
 type RTSP struct {
-	*Stream
+	*Stream  `json:"-"`
 	URL      string
 	SDPRaw   string
 	InBytes  int

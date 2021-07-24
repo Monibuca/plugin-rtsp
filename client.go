@@ -268,7 +268,6 @@ func (client *RTSP) startStream() {
 	//loggerTime := time.Now().Add(-10 * time.Second)
 	defer func() {
 		if client.Err() == nil && config.Reconnect {
-			Printf("reconnecting:%s", client.URL)
 			client.RTSPClientInfo = RTSPClientInfo{}
 			Printf("reconnecting:%s in 5 seconds", client.URL)
 			time.AfterFunc(time.Second*5, client.startStream)
@@ -277,6 +276,7 @@ func (client *RTSP) startStream() {
 		}
 	}()
 	if err := client.requestStream(); err != nil {
+		Printf("rtsp requestStream err:%v", err)
 		return
 	}
 	for client.Err() == nil {
