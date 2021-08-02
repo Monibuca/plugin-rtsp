@@ -27,6 +27,9 @@ Reconnect = true
 - `Reconnect` 是否自动重连
 - `RTSP.AutoPullList` 可以配置多项，用于自动拉流，key是streamPath，value是远程rtsp地址
 
+### 特殊功能
+
+当自动拉流列表中当的streamPath为sub/xxx 这种形式的话，在gb28181的分屏显示时会优先采用rtsp流，已实现分屏观看子码流效果
 ## 插件功能
 
 ### 接收RTSP协议的推流
