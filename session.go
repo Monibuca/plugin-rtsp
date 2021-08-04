@@ -125,22 +125,26 @@ func (session *RTSP) AcceptPush() {
 			switch channel {
 			case session.aRTPChannel:
 				// pack.Type = RTP_TYPE_AUDIO
-				elapsed := time.Since(timer)
-				if elapsed >= 30*time.Second {
-					Println("Recv an audio RTP package")
-					timer = time.Now()
+				if session.RtpAudio != nil {
+					elapsed := time.Since(timer)
+					if elapsed >= 30*time.Second {
+						Println("Recv an audio RTP package")
+						timer = time.Now()
+					}
+					session.RtpAudio.Push(rtpBytes)
 				}
-				session.RtpAudio.Push(rtpBytes)
 			case session.aRTPControlChannel:
 				// pack.Type = RTP_TYPE_AUDIOCONTROL
 			case session.vRTPChannel:
 				// pack.Type = RTP_TYPE_VIDEO
-				elapsed := time.Since(timer)
-				if elapsed >= 30*time.Second {
-					Println("Recv an video RTP package")
-					timer = time.Now()
+				if session.RtpVideo != nil {
+					elapsed := time.Since(timer)
+					if elapsed >= 30*time.Second {
+						Println("Recv an video RTP package")
+						timer = time.Now()
+					}
+					session.RtpVideo.Push(rtpBytes)
 				}
-				session.RtpVideo.Push(rtpBytes)
 			case session.vRTPControlChannel:
 				// pack.Type = RTP_TYPE_VIDEOCONTROL
 			default:

@@ -314,11 +314,15 @@ func (client *RTSP) startStream() {
 
 			switch channel {
 			case client.aRTPChannel:
-				client.RtpAudio.Push(content)
+				if client.RtpAudio != nil {
+					client.RtpAudio.Push(content)
+				}
 			case client.aRTPControlChannel:
 
 			case client.vRTPChannel:
-				client.RtpVideo.Push(content)
+				if client.RtpVideo != nil {
+					client.RtpVideo.Push(content)
+				}
 			case client.vRTPControlChannel:
 
 			default:
