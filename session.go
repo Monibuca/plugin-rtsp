@@ -286,12 +286,12 @@ func (session *RTSP) handleRequest(req *Request) {
 					at, vt := session.UDPClient.AT, session.UDPClient.VT
 					if vt != nil {
 						var st uint32
-						onVideo := func(pack VideoPack) {
+						onVideo := func(ts uint32, pack *VideoPack) {
 							if session.UDPClient == nil {
 								return
 							}
 							for _, nalu := range pack.NALUs {
-								for _, pack := range session.UDPClient.VPacketizer.Packetize(nalu, (pack.Timestamp-st)*90) {
+								for _, pack := range session.UDPClient.VPacketizer.Packetize(nalu, (ts-st)*90) {
 									p := &RTPPack{
 										Type:   RTP_TYPE_VIDEO,
 										Packet: *pack,
@@ -300,23 +300,23 @@ func (session *RTSP) handleRequest(req *Request) {
 									session.SendRTP(p)
 								}
 							}
-							st = pack.Timestamp
+							st = ts
 						}
-						sub.OnVideo = func(pack VideoPack) {
-							if st = pack.Timestamp; st != 0 {
+						sub.OnVideo = func(ts uint32, pack *VideoPack) {
+							if st = ts; st != 0 {
 								sub.OnVideo = onVideo
 							}
-							onVideo(pack)
+							onVideo(ts, pack)
 						}
 					}
 					if at != nil {
 						tb := uint32(at.SoundRate / 1000)
 						var st uint32
-						onAudio := func(pack AudioPack) {
+						onAudio := func(ts uint32, pack *AudioPack) {
 							if session.UDPClient == nil {
 								return
 							}
-							for _, pack := range session.UDPClient.APacketizer.Packetize(pack.Payload, (pack.Timestamp-st)*tb) {
+							for _, pack := range session.UDPClient.APacketizer.Packetize(pack.Payload, (ts-st)*tb) {
 								p := &RTPPack{
 									Type:   RTP_TYPE_VIDEO,
 									Packet: *pack,
@@ -324,13 +324,13 @@ func (session *RTSP) handleRequest(req *Request) {
 								p.Raw, _ = p.Marshal()
 								session.SendRTP(p)
 							}
-							st = pack.Timestamp
+							st = ts
 						}
-						sub.OnAudio = func(pack AudioPack) {
-							if st = pack.Timestamp; st != 0 {
+						sub.OnAudio = func(ts uint32, pack *AudioPack) {
+							if st = ts; st != 0 {
 								sub.OnAudio = onAudio
 							}
-							onAudio(pack)
+							onAudio(ts, pack)
 						}
 					}
 					go sub.Play(at, vt)
