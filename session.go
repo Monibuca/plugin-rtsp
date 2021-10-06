@@ -23,7 +23,7 @@ import (
 
 type RTPPack struct {
 	Type RTPType
-	Raw []byte
+	Raw  []byte
 }
 type SessionType int
 
@@ -293,7 +293,7 @@ func (session *RTSP) handleRequest(req *Request) {
 							for _, nalu := range pack.NALUs {
 								for _, pack := range session.UDPClient.VPacketizer.Packetize(nalu, (ts-st)*90) {
 									p := &RTPPack{
-										Type:   RTP_TYPE_VIDEO,
+										Type: RTP_TYPE_VIDEO,
 									}
 									p.Raw, _ = pack.Marshal()
 									session.SendRTP(p)
@@ -317,7 +317,7 @@ func (session *RTSP) handleRequest(req *Request) {
 							}
 							for _, pack := range session.UDPClient.APacketizer.Packetize(pack.Payload, (ts-st)*tb) {
 								p := &RTPPack{
-									Type:   RTP_TYPE_VIDEO,
+									Type: RTP_TYPE_VIDEO,
 								}
 								p.Raw, _ = pack.Marshal()
 								session.SendRTP(p)
@@ -454,6 +454,8 @@ func (session *RTSP) handleRequest(req *Request) {
 			case 10:
 				// TODO:
 				sdpInfo = append(sdpInfo, fmt.Sprintf("a=rtpmap:97 MPEG4-GENERIC/%d/%d", at.SoundRate, at.Channels))
+				session.UDPClient.APacketizer = rtp.NewPacketizer(1200, 97, uint32(ssrc), &AACPayloader{}, rtp.NewFixedSequencer(1), uint32(at.SoundRate))
+				session.UDPClient.AT = at
 			}
 		}
 		session.SDPRaw = strings.Join(sdpInfo, "\r\n") + "\r\n"

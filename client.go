@@ -295,16 +295,15 @@ func (client *RTSP) startStream() {
 			return
 		}
 		switch b {
-		case 0x24: // rtp
-			header := make([]byte, 4)
-			header[0] = b
-			_, err := io.ReadFull(client.connRW, header[1:])
+		case '$': // rtp
+			header := make([]byte, 3)
+			_, err := io.ReadFull(client.connRW, header)
 			if err != nil {
 				Printf("io.ReadFull err:%v", err)
 				return
 			}
-			channel := int(header[1])
-			length := binary.BigEndian.Uint16(header[2:])
+			channel := int(header[0])
+			length := binary.BigEndian.Uint16(header[1:])
 			content := make([]byte, length)
 			_, err = io.ReadFull(client.connRW, content)
 			if err != nil {
