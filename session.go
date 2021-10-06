@@ -454,8 +454,8 @@ func (session *RTSP) handleRequest(req *Request) {
 			case 10:
 				// TODO:
 				sdpInfo = append(sdpInfo, fmt.Sprintf("a=rtpmap:97 MPEG4-GENERIC/%d/%d", at.SoundRate, at.Channels))
-				session.UDPClient.APacketizer = rtp.NewPacketizer(1200, 97, uint32(ssrc), &AACPayloader{}, rtp.NewFixedSequencer(1), uint32(at.SoundRate))
-				session.UDPClient.AT = at
+			//	session.UDPClient.APacketizer = rtp.NewPacketizer(1200, 97, uint32(ssrc), &AACPayloader{}, rtp.NewFixedSequencer(1), uint32(at.SoundRate))
+				//session.UDPClient.AT = at
 			}
 		}
 		session.SDPRaw = strings.Join(sdpInfo, "\r\n") + "\r\n"
