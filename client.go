@@ -35,7 +35,22 @@ func (rtsp *RTSP) PullStream(streamPath string, rtspUrl string) (err error) {
 		rtsp.aRTPControlChannel = 3
 		rtsp.URL = rtspUrl
 		rtsp.UDPServer = &UDPServer{Session: rtsp}
-		go rtsp.startStream()
+		if config.Reconnect {
+			go func() {
+				for rtsp.Err() == nil {
+					rtsp.RTSPClientInfo = RTSPClientInfo{}
+					Printf("reconnecting:%s in 5 seconds", rtspUrl)
+					rtsp.startStream()
+				}
+				rtsp.Stop()
+			}()
+		} else {
+			rtsp.RTSPClientInfo = RTSPClientInfo{}
+			go func() {
+				rtsp.startStream()
+				rtsp.Stop()
+			}()
+		}
 		return
 	}
 	return errors.New("publish badname")
@@ -266,15 +281,6 @@ func (client *RTSP) startStream() {
 	}
 	startTime := time.Now()
 	//loggerTime := time.Now().Add(-10 * time.Second)
-	defer func() {
-		if client.Err() == nil && config.Reconnect {
-			client.RTSPClientInfo = RTSPClientInfo{}
-			Printf("reconnecting:%s in 5 seconds", client.URL)
-			time.AfterFunc(time.Second*5, client.startStream)
-		} else {
-			client.Stop()
-		}
-	}()
 	if err := client.requestStream(); err != nil {
 		Printf("rtsp requestStream err:%v", err)
 		return
