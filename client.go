@@ -40,9 +40,13 @@ func (rtsp *RTSP) PullStream(streamPath string, rtspUrl string) (err error) {
 				for rtsp.Err() == nil {
 					rtsp.RTSPClientInfo = RTSPClientInfo{}
 					Printf("reconnecting:%s in 5 seconds", rtspUrl)
+					time.Sleep(time.Second * 5)
 					rtsp.startStream()
 				}
 				rtsp.Stop()
+				if rtsp.IsTimeout {
+					go rtsp.PullStream(streamPath, rtspUrl)
+				}
 			}()
 		} else {
 			rtsp.RTSPClientInfo = RTSPClientInfo{}
