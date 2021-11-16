@@ -49,7 +49,7 @@ ffmpeg -i **** rtsp://localhost/live/test
 
 ## 使用编程方式拉流
 ```go
-new(RTSP).PullStream("live/user1","rtsp://xxx.xxx.xxx.xxx/live/user1") 
+new(RTSPClient).PullStream("live/user1","rtsp://xxx.xxx.xxx.xxx/live/user1") 
 ```
 
 ### 罗列所有的rtsp协议的流
@@ -60,4 +60,4 @@ new(RTSP).PullStream("live/user1","rtsp://xxx.xxx.xxx.xxx/live/user1")
 ### 从m7s中拉取rtsp协议流
 
 直接通过协议rtsp://xxx.xxx.xxx.xxx/live/user1 即可播放
-> h265和aac 编码拉流尚未实现，敬请期待
+> h265 编码拉流尚未实现，敬请期待
