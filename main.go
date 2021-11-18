@@ -19,7 +19,8 @@ var config = struct {
 	Timeout      int
 	Reconnect    bool
 	AutoPullList map[string]string
-}{":554", ":8000", ":8001", 0, false, nil}
+	AutoPushList map[string]string
+}{":554", ":8000", ":8001", 0, false, nil, nil}
 
 func init() {
 	InstallPlugin(&PluginConfig{
@@ -63,13 +64,18 @@ func runPlugin() {
 			w.Write([]byte(fmt.Sprintf(`{"code":1,"msg":"%s"}`, err.Error())))
 		}
 	})
-	if len(config.AutoPullList) > 0 {
-		for streamPath, url := range config.AutoPullList {
-			if err := (&RTSPClient{}).PullStream(streamPath, url); err != nil {
-				Println(err)
-			}
+	for streamPath, url := range config.AutoPullList {
+		if err := (&RTSPClient{}).PullStream(streamPath, url); err != nil {
+			Println(err)
 		}
 	}
+	go AddHook(HOOK_PUBLISH, func(s *Stream) {
+		for streamPath, url := range config.AutoPushList {
+			if s.StreamPath == streamPath {
+				(&RTSPClient{}).PushStream(streamPath, url)
+			}
+		}
+	})
 	if config.ListenAddr != "" {
 		go log.Fatal(ListenRtsp(config.ListenAddr))
 	}
