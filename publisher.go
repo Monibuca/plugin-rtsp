@@ -19,11 +19,15 @@ type RTSPublisher struct {
 }
 
 func (p *RTSPublisher) setTracks(tracks gortsplib.Tracks) {
+	if p.processFunc != nil {
+		p.processFunc = p.processFunc[:0]
+	}
 	for i, track := range tracks {
 		v, ok := track.Media.Attribute("rtpmap")
 		if !ok {
 			continue
 		}
+	
 		fmtp := make(map[string]string)
 		if v, ok := track.Media.Attribute("fmtp"); ok {
 			if tmp := strings.SplitN(v, " ", 2); len(tmp) == 2 {

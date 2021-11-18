@@ -100,7 +100,7 @@ func (sh *RTSPServer) OnDescribe(ctx *gortsplib.ServerHandlerOnDescribeCtx) (*ba
 				for _, nalu := range pack.NALUs {
 					for _, pack := range vpacketer.Packetize(nalu, (ts-st)*90) {
 						rtp, _ := pack.Marshal()
-						stream.WriteFrame(trackId, gortsplib.StreamTypeRTP, rtp)
+						stream.WritePacketRTP(trackId, rtp)
 					}
 				}
 				st = ts
@@ -124,7 +124,7 @@ func (sh *RTSPServer) OnDescribe(ctx *gortsplib.ServerHandlerOnDescribeCtx) (*ba
 				sub.OnAudio = func(ts uint32, pack *engine.AudioPack) {
 					for _, pack := range apacketizer.Packetize(pack.Raw, (ts-st)*8) {
 						buf, _ := pack.Marshal()
-						stream.WriteFrame(trackId, gortsplib.StreamTypeRTP, buf)
+						stream.WritePacketRTP(trackId, buf)
 					}
 					st = ts
 				}
@@ -143,7 +143,7 @@ func (sh *RTSPServer) OnDescribe(ctx *gortsplib.ServerHandlerOnDescribeCtx) (*ba
 					sub.OnAudio = func(ts uint32, pack *engine.AudioPack) {
 						for _, pack := range apacketizer.Packetize(pack.Raw, (ts-st)*uint32(mpegConf.SampleRate)/1000) {
 							buf, _ := pack.Marshal()
-							stream.WriteFrame(trackId, gortsplib.StreamTypeRTP, buf)
+							stream.WritePacketRTP(trackId, buf)
 						}
 						st = ts
 					}
@@ -241,10 +241,8 @@ func (sh *RTSPServer) OnRecord(ctx *gortsplib.ServerHandlerOnRecordCtx) (*base.R
 }
 
 // called after receiving a frame.
-func (sh *RTSPServer) OnFrame(ctx *gortsplib.ServerHandlerOnFrameCtx) {
+func (sh *RTSPServer) OnPacketRTP(ctx *gortsplib.ServerHandlerOnPacketRTPCtx) {
 	if p, ok := sh.Load(ctx.Session); ok {
-		if ctx.StreamType == gortsplib.StreamTypeRTP {
-			p.(*RTSPublisher).processFunc[ctx.TrackID](ctx.Payload)
-		}
+		p.(*RTSPublisher).processFunc[ctx.TrackID](ctx.Payload)
 	}
 }

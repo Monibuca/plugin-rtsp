@@ -79,11 +79,12 @@ func ListenRtsp(addr string) error {
 	defer log.Println("rtsp server start!")
 	s := &gortsplib.Server{
 		Handler:           &RTSPServer{},
+		RTSPAddress:       addr,
 		UDPRTPAddress:     config.UDPAddr,
 		UDPRTCPAddress:    config.RTCPAddr,
 		MulticastIPRange:  "224.1.0.0/16",
 		MulticastRTPPort:  8002,
 		MulticastRTCPPort: 8003,
 	}
-	return s.StartAndWait(addr)
+	return s.StartAndWait()
 }
