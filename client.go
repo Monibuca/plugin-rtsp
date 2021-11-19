@@ -17,7 +17,8 @@ import (
 
 type RTSPClient struct {
 	RTSPublisher
-	gortsplib.Client `json:"-"`
+	Transport         gortsplib.Transport
+	*gortsplib.Client `json:"-"`
 }
 
 // PullStream 从外部拉流
@@ -27,9 +28,6 @@ func (rtsp *RTSPClient) PullStream(streamPath string, rtspUrl string) (err error
 		Type:       "RTSP Pull",
 		ExtraProp:  rtsp,
 	}
-	rtsp.OnPacketRTP = func(trackID int, payload []byte) {
-		rtsp.processFunc[trackID](payload)
-	}
 	if result := rtsp.Publish(); result {
 		rtsp.URL = rtspUrl
 		if config.Reconnect {
@@ -38,16 +36,12 @@ func (rtsp *RTSPClient) PullStream(streamPath string, rtspUrl string) (err error
 					Printf("reconnecting:%s in 5 seconds", rtspUrl)
 					time.Sleep(time.Second * 5)
 				}
-				rtsp.Client.Close()
 				if rtsp.IsTimeout {
 					go rtsp.PullStream(streamPath, rtspUrl)
 				}
 			}()
 		} else {
-			go func() {
-				rtsp.startStream()
-				rtsp.Client.Close()
-			}()
+			go rtsp.startStream()
 		}
 		return
 	}
@@ -144,6 +138,14 @@ func (client *RTSPClient) startStream() {
 	if client.Err() != nil {
 		return
 	}
+	client.Client = &gortsplib.Client{
+		OnPacketRTP: func(trackID int, payload []byte) {
+			var clone []byte
+			client.processFunc[trackID](append(clone, payload...))
+		},
+		Transport: &client.Transport,
+	}
+	defer client.Client.Close()
 	// parse URL
 	u, err := base.ParseURL(client.URL)
 	if err != nil {

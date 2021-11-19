@@ -58,14 +58,14 @@ func runPlugin() {
 		CORS(w, r)
 		targetURL := r.URL.Query().Get("target")
 		streamPath := r.URL.Query().Get("streamPath")
-		if err := (&RTSPClient{}).PullStream(streamPath, targetURL); err == nil {
+		if err := (&RTSPClient{Transport: gortsplib.TransportTCP}).PullStream(streamPath, targetURL); err == nil {
 			w.Write([]byte(`{"code":0}`))
 		} else {
 			w.Write([]byte(fmt.Sprintf(`{"code":1,"msg":"%s"}`, err.Error())))
 		}
 	})
 	for streamPath, url := range config.AutoPullList {
-		if err := (&RTSPClient{}).PullStream(streamPath, url); err != nil {
+		if err := (&RTSPClient{Transport: gortsplib.TransportTCP}).PullStream(streamPath, url); err != nil {
 			Println(err)
 		}
 	}
