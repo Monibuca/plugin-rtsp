@@ -20,14 +20,17 @@ type RTSPublisher struct {
 
 func (p *RTSPublisher) setTracks(tracks gortsplib.Tracks) {
 	if p.processFunc != nil {
-		p.processFunc = p.processFunc[:0]
+		p.processFunc = p.processFunc[:len(tracks)]
+		return
+	} else {
+		p.processFunc = make([]func([]byte), len(tracks))
 	}
 	for i, track := range tracks {
 		v, ok := track.Media.Attribute("rtpmap")
 		if !ok {
 			continue
 		}
-	
+
 		fmtp := make(map[string]string)
 		if v, ok := track.Media.Attribute("fmtp"); ok {
 			if tmp := strings.SplitN(v, " ", 2); len(tmp) == 2 {
@@ -56,14 +59,14 @@ func (p *RTSPublisher) setTracks(tracks gortsplib.Tracks) {
 			timeScale = i
 		}
 		if len(keyval) >= 2 {
-			Printf("track %d is %s",i,keyval[0])
+			Printf("track %d is %s", i, keyval[0])
 			switch strings.ToLower(keyval[0]) {
 			case "h264":
 				vt := p.NewRTPVideo(7)
 				if conf, err := track.ExtractConfigH264(); err == nil {
 					vt.PushNalu(0, 0, conf.SPS, conf.PPS)
 				}
-				p.processFunc = append(p.processFunc, vt.Push)
+				p.processFunc[i] = vt.Push
 			case "h265", "hevc":
 				vt := p.NewRTPVideo(12)
 				if v, ok := fmtp["sprop-vps"]; ok {
@@ -78,7 +81,7 @@ func (p *RTSPublisher) setTracks(tracks gortsplib.Tracks) {
 					pps, _ := base64.StdEncoding.DecodeString(v)
 					vt.PushNalu(0, 0, pps)
 				}
-				p.processFunc = append(p.processFunc, vt.Push)
+				p.processFunc[i] = vt.Push
 			case "pcma":
 				at := p.NewRTPAudio(7)
 				at.SoundRate = timeScale
@@ -90,7 +93,7 @@ func (p *RTSPublisher) setTracks(tracks gortsplib.Tracks) {
 					at.Channels = 1
 				}
 				at.ExtraData = []byte{(at.CodecID << 4) | (1 << 1)}
-				p.processFunc = append(p.processFunc, at.Push)
+				p.processFunc[i] = at.Push
 			case "pcmu":
 				at := p.NewRTPAudio(8)
 				at.SoundRate = timeScale
@@ -102,7 +105,7 @@ func (p *RTSPublisher) setTracks(tracks gortsplib.Tracks) {
 					at.Channels = 1
 				}
 				at.ExtraData = []byte{(at.CodecID << 4) | (1 << 1)}
-				p.processFunc = append(p.processFunc, at.Push)
+				p.processFunc[i] = at.Push
 			case "mpeg4-generic":
 				at := p.NewRTPAudio(0)
 				if config, ok := fmtp["config"]; ok {
@@ -112,7 +115,7 @@ func (p *RTSPublisher) setTracks(tracks gortsplib.Tracks) {
 					Println("aac no config")
 				}
 				at.SoundSize = 16
-				p.processFunc = append(p.processFunc, at.Push)
+				p.processFunc[i] = at.Push
 			}
 		}
 	}

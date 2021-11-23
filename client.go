@@ -34,6 +34,11 @@ func (rtsp *RTSPClient) PullStream(streamPath string, rtspUrl string) (err error
 			go func() {
 				for rtsp.startStream(); rtsp.Err() == nil; rtsp.startStream() {
 					Printf("reconnecting:%s in 5 seconds", rtspUrl)
+					if rtsp.Transport == gortsplib.TransportTCP {
+						rtsp.Transport = gortsplib.TransportUDP
+					} else {
+						rtsp.Transport = gortsplib.TransportTCP
+					}
 					time.Sleep(time.Second * 5)
 				}
 				if rtsp.IsTimeout {
@@ -166,11 +171,13 @@ func (client *RTSPClient) startStream() {
 	// find published tracks
 	tracks, baseURL, res, err := client.Describe(u)
 	if err != nil {
-		Printf("Describe:%s error:%v", baseURL.String(), err)
+		Printf("Describe:%s error:%v", client.URL, err)
 		return
 	}
 	Println(res)
-	client.setTracks(tracks)
+	if client.processFunc == nil {
+		client.setTracks(tracks)
+	}
 	for _, track := range tracks {
 		if res, err = client.Setup(true, baseURL, track, 0, 0); err != nil {
 			Printf("Setup:%s error:%v", baseURL.String(), err)
