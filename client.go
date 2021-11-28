@@ -32,7 +32,7 @@ func (rtsp *RTSPClient) PullStream(streamPath string, rtspUrl string) (err error
 		rtsp.URL = rtspUrl
 		if config.Reconnect {
 			go func() {
-				for rtsp.startStream(); rtsp.Err() == nil; rtsp.startStream() {
+				for rtsp.pullStream(); rtsp.Err() == nil; rtsp.pullStream() {
 					Printf("reconnecting:%s in 5 seconds", rtspUrl)
 					if rtsp.Transport == gortsplib.TransportTCP {
 						rtsp.Transport = gortsplib.TransportUDP
@@ -46,7 +46,7 @@ func (rtsp *RTSPClient) PullStream(streamPath string, rtspUrl string) (err error
 				}
 			}()
 		} else {
-			go rtsp.startStream()
+			go rtsp.pullStream()
 		}
 		return
 	}
@@ -139,7 +139,7 @@ func (rtsp *RTSPClient) PushStream(streamPath string, rtspUrl string) (err error
 	}
 	return errors.New("stream not exist")
 }
-func (client *RTSPClient) startStream() {
+func (client *RTSPClient) pullStream() {
 	if client.Err() != nil {
 		return
 	}
