@@ -22,6 +22,14 @@ var config = struct {
 	AutoPushList map[string]string
 }{":554", ":8000", ":8001", 0, false, nil, nil}
 
+type RTSPStreamInfo struct {
+	StreamPath      string
+	Type            string //流类型，来自发布者
+	StartTime       time.Time
+	URL             string
+	SubscriberCount int
+}
+
 func init() {
 	InstallPlugin(&PluginConfig{
 		Name:   "RTSP",
@@ -29,10 +37,13 @@ func init() {
 		Run:    runPlugin,
 	})
 }
-func getRtspList() (info []*RTSPublisher) {
+func getRtspList() (info []*RTSPStreamInfo) {
 	for _, s := range Streams.ToList() {
-		if rtsp, ok := s.ExtraProp.(*RTSPublisher); ok {
-			info = append(info, rtsp)
+		switch rtsp := s.ExtraProp.(type) {
+		case *RTSPublisher:
+			info = append(info, rtsp.GetInfo())
+		case *RTSPClient:
+			info = append(info, rtsp.GetInfo())
 		}
 	}
 	return

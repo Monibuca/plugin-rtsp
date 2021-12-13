@@ -177,6 +177,7 @@ func (sh *RTSPServer) OnAnnounce(ctx *gortsplib.ServerHandlerOnAnnounceCtx) (*ba
 			Type:       "RTSP push",
 		},
 	}
+	p.ExtraProp = p
 	p.URL = ctx.Req.URL.String()
 	if p.Publish() {
 		p.setTracks(ctx.Tracks)
