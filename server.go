@@ -244,6 +244,11 @@ func (sh *RTSPServer) OnRecord(ctx *gortsplib.ServerHandlerOnRecordCtx) (*base.R
 // called after receiving a frame.
 func (sh *RTSPServer) OnPacketRTP(ctx *gortsplib.ServerHandlerOnPacketRTPCtx) {
 	if p, ok := sh.Load(ctx.Session); ok {
-		p.(*RTSPublisher).processFunc[ctx.TrackID](ctx.Payload)
+		rtsp := p.(*RTSPublisher)
+		if rtsp.Err() != nil {
+			ctx.Session.Close()
+			return
+		}
+		rtsp.processFunc[ctx.TrackID](ctx.Payload)
 	}
 }

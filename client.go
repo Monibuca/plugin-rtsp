@@ -179,7 +179,7 @@ func (client *RTSPClient) pullStream() {
 		client.setTracks(tracks)
 	}
 	for _, track := range tracks {
-		if res, err = client.Setup(true, baseURL, track, 0, 0); err != nil {
+		if res, err = client.Setup(true, track, baseURL, 0, 0); err != nil {
 			Printf("Setup:%s error:%v", baseURL.String(), err)
 			return
 		}
@@ -192,6 +192,14 @@ func (client *RTSPClient) pullStream() {
 	}
 	Println(res)
 	// wait until a fatal error
-	err = client.Wait()
-	Printf("Wait:%s error:%v", baseURL.String(), err)
+	var fatalChan = make(chan error)
+	go func() {
+		fatalChan <- client.Wait()
+	}()
+	select {
+	case err := <-fatalChan:
+		Printf("Wait:%s error:%v", baseURL.String(), err)
+	case <-client.Done():
+		Printf("client:%s done", client.URL)
+	}
 }
