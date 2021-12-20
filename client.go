@@ -150,7 +150,6 @@ func (client *RTSPClient) pullStream() {
 		},
 		Transport: &client.Transport,
 	}
-	defer client.Client.Close()
 	// parse URL
 	u, err := base.ParseURL(client.URL)
 	if err != nil {
@@ -162,6 +161,8 @@ func (client *RTSPClient) pullStream() {
 		Printf("connect:%s error:%v", client.URL, err)
 		return
 	}
+	//client.close should be after connected!
+	defer client.Client.Close()
 	var res *base.Response
 	if res, err = client.Options(u); err != nil {
 		Printf("option:%s error:%v", client.URL, err)
