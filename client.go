@@ -103,7 +103,7 @@ func (rtsp *RTSPClient) PushStream(streamPath string, rtspUrl string) (err error
 			trackId := trackIds
 			switch sub.at.CodecID {
 			case codec.CodecID_PCMA, codec.CodecID_PCMU:
-				atrack := NewG711Track(97, map[byte]string{7: "pcma", 8: "pcmu"}[sub.vt.CodecID])
+				atrack := NewG711Track(97, map[byte]string{7: "pcma", 8: "pcmu"}[sub.at.CodecID])
 				apacketizer := rtp.NewPacketizer(1200, 97, uint32(ssrc), &codecs.G711Payloader{}, rtp.NewFixedSequencer(1), 8000)
 				sub.OnAudio = func(ts uint32, pack *AudioPack) {
 					for _, pack := range apacketizer.Packetize(pack.Raw, (ts-st)*8) {
