@@ -249,6 +249,8 @@ func (sh *RTSPServer) OnPacketRTP(ctx *gortsplib.ServerHandlerOnPacketRTPCtx) {
 			ctx.Session.Close()
 			return
 		}
-		rtsp.processFunc[ctx.TrackID](ctx.Payload)
+		if f := rtsp.processFunc[ctx.TrackID]; f != nil {
+			f(ctx.Payload)
+		}
 	}
 }

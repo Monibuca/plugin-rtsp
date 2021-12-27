@@ -22,28 +22,22 @@ var config = struct {
 	AutoPushList map[string]string
 }{":554", ":8000", ":8001", 0, false, nil, nil}
 
-type RTSPStreamInfo struct {
-	StreamPath      string
-	Type            string //流类型，来自发布者
-	StartTime       time.Time
-	URL             string
-	SubscriberCount int
+var pconfig = PluginConfig{
+	Name:   "RTSP",
+	Config: &config,
 }
 
 func init() {
-	InstallPlugin(&PluginConfig{
-		Name:   "RTSP",
-		Config: &config,
-		Run:    runPlugin,
-	})
+	pconfig.Install(runPlugin)
 }
-func getRtspList() (info []*RTSPStreamInfo) {
+
+func getRtspList() (info []*Stream) {
 	for _, s := range Streams.ToList() {
-		switch rtsp := s.ExtraProp.(type) {
+		switch s.ExtraProp.(type) {
 		case *RTSPublisher:
-			info = append(info, rtsp.GetInfo())
+			info = append(info, s)
 		case *RTSPClient:
-			info = append(info, rtsp.GetInfo())
+			info = append(info, s)
 		}
 	}
 	return
@@ -69,7 +63,17 @@ func runPlugin() {
 		CORS(w, r)
 		targetURL := r.URL.Query().Get("target")
 		streamPath := r.URL.Query().Get("streamPath")
+		save := r.URL.Query().Get("save")
 		if err := (&RTSPClient{Transport: gortsplib.TransportTCP}).PullStream(streamPath, targetURL); err == nil {
+			if save == "1" {
+				if config.AutoPullList == nil {
+					config.AutoPullList = make(map[string]string)
+				}
+				config.AutoPullList[streamPath] = targetURL
+				if err := pconfig.Save(); err != nil {
+					Println(err)
+				}
+			}
 			w.Write([]byte(`{"code":0}`))
 		} else {
 			w.Write([]byte(fmt.Sprintf(`{"code":1,"msg":"%s"}`, err.Error())))
@@ -80,6 +84,7 @@ func runPlugin() {
 			Println(err)
 		}
 	}
+	
 	go AddHook(HOOK_PUBLISH, func(s *Stream) {
 		for streamPath, url := range config.AutoPushList {
 			if s.StreamPath == streamPath {

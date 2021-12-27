@@ -13,21 +13,10 @@ import (
 
 type RTSPublisher struct {
 	*Stream     `json:"-"`
-	URL         string
 	stream      *gortsplib.ServerStream
 	processFunc []func([]byte)
 }
 
-func (p *RTSPublisher) GetInfo() (info *RTSPStreamInfo) {
-	info = &RTSPStreamInfo{
-		URL:             p.URL,
-		StreamPath:      p.StreamPath,
-		Type:            p.Type,
-		StartTime:       p.StartTime,
-		SubscriberCount: len(p.Subscribers),
-	}
-	return
-}
 func (p *RTSPublisher) setTracks(tracks gortsplib.Tracks) {
 	if p.processFunc != nil {
 		p.processFunc = p.processFunc[:len(tracks)]
