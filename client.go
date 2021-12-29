@@ -151,7 +151,7 @@ func (client *RTSPClient) pullStream() {
 				f(append(clone, payload...))
 			}
 		},
-		ReadBufferSize: 10000,
+		ReadBufferSize: config.ReadBufferSize,
 		Transport:      &client.Transport,
 	}
 	// parse URL

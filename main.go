@@ -13,14 +13,15 @@ import (
 )
 
 var config = struct {
-	ListenAddr   string
-	UDPAddr      string
-	RTCPAddr     string
-	Timeout      int
-	Reconnect    bool
-	AutoPullList map[string]string
-	AutoPushList map[string]string
-}{":554", ":8000", ":8001", 0, false, nil, nil}
+	ListenAddr     string
+	UDPAddr        string
+	RTCPAddr       string
+	Timeout        int
+	Reconnect      bool
+	AutoPullList   map[string]string
+	AutoPushList   map[string]string
+	ReadBufferSize int
+}{":554", ":8000", ":8001", 0, false, nil, nil, 2048}
 
 var pconfig = PluginConfig{
 	Name:   "RTSP",
@@ -84,7 +85,7 @@ func runPlugin() {
 			Println(err)
 		}
 	}
-	
+
 	go AddHook(HOOK_PUBLISH, func(s *Stream) {
 		for streamPath, url := range config.AutoPushList {
 			if s.StreamPath == streamPath {
