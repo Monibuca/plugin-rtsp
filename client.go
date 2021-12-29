@@ -145,12 +145,14 @@ func (client *RTSPClient) pullStream() {
 	}
 	client.Client = &gortsplib.Client{
 		OnPacketRTP: func(trackID int, payload []byte) {
+			// Println("OnPacketRTP", trackID, len(payload))
 			if f := client.processFunc[trackID]; f != nil {
 				var clone []byte
 				f(append(clone, payload...))
 			}
 		},
-		Transport: &client.Transport,
+		ReadBufferSize: 10000,
+		Transport:      &client.Transport,
 	}
 	// parse URL
 	u, err := base.ParseURL(client.URL)
