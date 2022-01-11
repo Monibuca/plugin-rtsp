@@ -165,6 +165,9 @@ func (client *RTSPClient) pullStream() {
 		Printf("connect:%s error:%v", client.URL, err)
 		return
 	}
+	client.OnClose = func() {
+		client.Client.Close()
+	}
 	//client.close should be after connected!
 	defer client.Client.Close()
 	var res *base.Response
