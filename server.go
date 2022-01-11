@@ -98,7 +98,13 @@ func (sh *RTSPServer) OnDescribe(ctx *gortsplib.ServerHandlerOnDescribeCtx) (*ba
 			var st uint32
 			onVideo := func(ts uint32, pack *engine.VideoPack) {
 				for i, nalu := range pack.NALUs {
-					packs := vpacketer.Packetize(nalu, (ts-st)*90)
+					var samples uint32
+					if i == len(pack.NALUs)-1 {
+						samples = (ts-st)*90
+					} else {
+						samples = 0
+					}
+					packs := vpacketer.Packetize(nalu, samples)
 					for j, rtpack := range packs {
 						rtpack.Marker = i == len(pack.NALUs)-1 && j == len(packs)-1
 						rtp, _ := rtpack.Marshal()
