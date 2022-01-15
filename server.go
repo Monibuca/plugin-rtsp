@@ -75,7 +75,7 @@ func (sh *RTSPServer) OnDescribe(ctx *gortsplib.ServerHandlerOnDescribeCtx) (*ba
 		sub.Type = "RTSP pull"
 		sub.vt = s.WaitVideoTrack("h264", "h265")
 		sub.at = s.WaitAudioTrack("aac", "pcma", "pcmu")
-		ssrc := uintptr(unsafe.Pointer(stream))
+		ssrc := uintptr(unsafe.Pointer(&stream))
 		var trackIds = 0
 		if sub.vt != nil {
 			trackId := trackIds
@@ -100,7 +100,7 @@ func (sh *RTSPServer) OnDescribe(ctx *gortsplib.ServerHandlerOnDescribeCtx) (*ba
 				for i, nalu := range pack.NALUs {
 					var samples uint32
 					if i == len(pack.NALUs)-1 {
-						samples = (ts-st)*90
+						samples = (ts - st) * 90
 					} else {
 						samples = 0
 					}
