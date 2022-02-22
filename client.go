@@ -42,6 +42,7 @@ func (rtsp *RTSPClient) PullStream(streamPath string, rtspUrl string) (err error
 					time.Sleep(time.Second * 5)
 				}
 				if rtsp.IsTimeout {
+					rtsp.processFunc = nil
 					go rtsp.PullStream(streamPath, rtspUrl)
 				}
 			}()
