@@ -7,26 +7,19 @@ github.com/Monibuca/plugin-rtsp
 ## 插件引入
 ```go
 import (
-    _ "github.com/Monibuca/plugin-rtsp"
+    _ "m7s.live/plugin/rtsp/v4"
 )
 ```
 
 ## 默认插件配置
 
-```toml
-[RTSP]
+```yaml
+rtsp:
 # 端口接收推流
-ListenAddr = ":554"
-Reconnect = true
-[RTSP.AutoPullList]
-"live/rtsp1" = "rtsp://admin:admin@192.168.1.212:554/cam/realmonitor?channel=1&subtype=1"
-"live/rtsp2" = "rtsp://admin:admin@192.168.1.212:554/cam/realmonitor?channel=2&subtype=1"
+  listenaddr: :554
+  udpaddr: :8000
+  readbuffersize: 2048
 ```
-
-- `ListenAddr`是监听的地址
-- `Reconnect` 是否自动重连
-- `RTSP.AutoPullList` 可以配置多项，用于自动拉流，key是streamPath，value是远程rtsp地址
-
 ### 特殊功能
 
 当自动拉流列表中当的streamPath为sub/xxx 这种形式的话，在gb28181的分屏显示时会优先采用rtsp流，已实现分屏观看子码流效果
@@ -45,7 +38,7 @@ ffmpeg -i **** rtsp://localhost/live/test
 ### 从远程拉取rtsp到m7s中
 
 可调用接口
-`/api/rtsp/pull?target=[RTSP地址]&streamPath=[流标识]`
+`rtsp/api/pull?target=[RTSP地址]&streamPath=[流标识]`
 
 ## 使用编程方式拉流
 ```go
@@ -55,9 +48,8 @@ new(RTSPClient).PullStream("live/user1","rtsp://xxx.xxx.xxx.xxx/live/user1")
 ### 罗列所有的rtsp协议的流
 
 可调用接口
-`/api/rtsp/list`
+`rtsp/api/list`
 
 ### 从m7s中拉取rtsp协议流
 
 直接通过协议rtsp://xxx.xxx.xxx.xxx/live/user1 即可播放
-> h265 编码拉流尚未实现，敬请期待
