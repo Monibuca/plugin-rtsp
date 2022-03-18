@@ -9,11 +9,8 @@ import (
 )
 
 type RTSPSubscriber struct {
-	tracks gortsplib.Tracks
-	stream *gortsplib.ServerStream
 	Subscriber
-	audioTrackId int
-	videoTrackId int
+	RTSPIO
 }
 
 func (s *RTSPSubscriber) OnEvent(event any) {

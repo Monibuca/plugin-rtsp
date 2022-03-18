@@ -4,7 +4,15 @@ import (
 	"github.com/aler9/gortsplib"
 	"github.com/aler9/gortsplib/pkg/base"
 	. "m7s.live/engine/v4"
+
 )
+
+type RTSPIO struct {
+	tracks       gortsplib.Tracks
+	stream       *gortsplib.ServerStream
+	audioTrackId int
+	videoTrackId int
+}
 
 func (conf *RTSPConfig) OnConnOpen(ctx *gortsplib.ServerHandlerOnConnOpenCtx) {
 	plugin.Debug("conn opened")
@@ -69,4 +77,32 @@ func (conf *RTSPConfig) OnPlay(ctx *gortsplib.ServerHandlerOnPlayCtx) (*base.Res
 		}
 	}
 	return &resp, nil
+}
+
+func (conf *RTSPConfig) OnAnnounce(ctx *gortsplib.ServerHandlerOnAnnounceCtx) (*base.Response, error) {
+	p := &RTSPPublisher{}
+	if err := plugin.Publish(ctx.Path, p); err == nil {
+		p.tracks = ctx.Tracks
+		p.stream = gortsplib.NewServerStream(ctx.Tracks)
+		p.SetTracks()
+
+		conf.Store(ctx.Conn, p)
+		conf.Store(ctx.Session, p)
+	} else {
+		return &base.Response{
+			StatusCode: base.StatusBadRequest,
+		}, err
+	}
+	return &base.Response{
+		StatusCode: base.StatusOK,
+	}, nil
+}
+
+func (conf *RTSPConfig) OnPacketRTP(ctx *gortsplib.ServerHandlerOnPacketRTPCtx) {
+	if p, ok := conf.Load(ctx.Session); ok {
+		switch v := p.(type) {
+		case *RTSPPublisher:
+			v.Tracks[ctx.TrackID].WriteRTPPack(ctx.Packet)
+		}
+	}
 }
