@@ -4,7 +4,6 @@ import (
 	"github.com/aler9/gortsplib"
 	"github.com/aler9/gortsplib/pkg/base"
 	. "m7s.live/engine/v4"
-
 )
 
 type RTSPIO struct {
@@ -40,6 +39,7 @@ func (conf *RTSPConfig) OnSessionClose(ctx *gortsplib.ServerHandlerOnSessionClos
 func (conf *RTSPConfig) OnDescribe(ctx *gortsplib.ServerHandlerOnDescribeCtx) (*base.Response, *gortsplib.ServerStream, error) {
 	plugin.Debug("describe request")
 	var suber RTSPSubscriber
+	suber.SetIO(ctx.Conn.NetConn())
 	if err := plugin.Subscribe(ctx.Path, &suber); err == nil {
 		conf.Store(ctx.Conn, &suber)
 		return &base.Response{
@@ -57,6 +57,8 @@ func (conf *RTSPConfig) OnSetup(ctx *gortsplib.ServerHandlerOnSetupCtx) (*base.R
 		switch v := p.(type) {
 		case *RTSPSubscriber:
 			return &resp, v.stream, nil
+		case *RTSPPublisher:
+			return &resp, v.stream, nil
 		}
 	}
 	resp.StatusCode = base.StatusNotFound
@@ -72,20 +74,24 @@ func (conf *RTSPConfig) OnPlay(ctx *gortsplib.ServerHandlerOnPlayCtx) (*base.Res
 			resp.StatusCode = base.StatusOK
 			go func() {
 				v.PlayBlock(v)
-				ctx.Conn.Close()
+				ctx.Session.Close()
 			}()
 		}
 	}
 	return &resp, nil
 }
-
+func (conf *RTSPConfig) OnRecord(ctx *gortsplib.ServerHandlerOnRecordCtx) (*base.Response, error) {
+	return &base.Response{
+		StatusCode: base.StatusOK,
+	}, nil
+}
 func (conf *RTSPConfig) OnAnnounce(ctx *gortsplib.ServerHandlerOnAnnounceCtx) (*base.Response, error) {
 	p := &RTSPPublisher{}
+	p.SetIO(ctx.Conn.NetConn())
 	if err := plugin.Publish(ctx.Path, p); err == nil {
 		p.tracks = ctx.Tracks
 		p.stream = gortsplib.NewServerStream(ctx.Tracks)
 		p.SetTracks()
-
 		conf.Store(ctx.Conn, p)
 		conf.Store(ctx.Session, p)
 	} else {

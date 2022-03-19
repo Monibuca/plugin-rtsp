@@ -23,6 +23,15 @@ func (p *RTSPPublisher) SetTracks() {
 	for trackId, track := range p.tracks {
 		md := track.MediaDescription()
 		v, ok := md.Attribute("rtpmap")
+		if !ok {
+			p.Error("rtpmap attribute not found")
+			return
+		}
+		v = strings.TrimSpace(v)
+		vals := strings.Split(v, " ")
+		if len(vals) != 2 {
+			continue
+		}
 		fmtp := make(map[string]string)
 		if v, ok = md.Attribute("fmtp"); ok {
 			if tmp := strings.SplitN(v, " ", 2); len(tmp) == 2 {
@@ -38,11 +47,6 @@ func (p *RTSPPublisher) SetTracks() {
 					}
 				}
 			}
-		}
-		v = strings.TrimSpace(v)
-		vals := strings.Split(v, " ")
-		if len(vals) != 2 {
-			continue
 		}
 		timeScale := 0
 		keyval := strings.Split(vals[1], "/")
@@ -96,6 +100,7 @@ func (p *RTSPPublisher) SetTracks() {
 				at.AVCCHead = []byte{(byte(at.CodecID) << 4) | (1 << 1)}
 			case "mpeg4-generic":
 				at := NewAAC(p.Stream)
+				p.Tracks[trackId] = at
 				if config, ok := fmtp["config"]; ok {
 					asc, _ := hex.DecodeString(config)
 					// 复用AVCC写入逻辑，解析出AAC的配置信息
