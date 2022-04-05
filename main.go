@@ -1,12 +1,15 @@
 package rtsp
 
 import (
+	"net/http"
 	"sync"
+	"time"
 
 	"github.com/aler9/gortsplib"
 	"go.uber.org/zap"
 	. "m7s.live/engine/v4"
 	"m7s.live/engine/v4/config"
+	"m7s.live/engine/v4/util"
 )
 
 type RTSPConfig struct {
@@ -70,3 +73,33 @@ var rtspConfig = &RTSPConfig{
 	ReadBufferSize: 2048,
 }
 var plugin = InstallPlugin(rtspConfig)
+
+func filterStreams() (ss []*Stream) {
+	Streams.RLock()
+	defer Streams.RUnlock()
+	for _, s := range Streams.Map {
+		switch s.Publisher.(type) {
+		case *RTSPPublisher, *RTSPPuller:
+			ss = append(ss, s)
+		}
+	}
+	return
+}
+
+func (*RTSPConfig) API_list(w http.ResponseWriter, r *http.Request) {
+	util.ReturnJson(filterStreams, time.Second, w, r)
+}
+
+func (*RTSPConfig) API_Pull(rw http.ResponseWriter, r *http.Request) {
+	err := plugin.Pull(r.URL.Query().Get("streamPath"), r.URL.Query().Get("target"), new(RTSPPuller), r.URL.Query().Has("save"))
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+	}
+}
+
+func (*RTSPConfig) API_Push(rw http.ResponseWriter, r *http.Request) {
+	err := plugin.Push(r.URL.Query().Get("streamPath"), r.URL.Query().Get("target"), new(RTSPPusher), r.URL.Query().Has("save"))
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+	}
+}
