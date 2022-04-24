@@ -29,6 +29,7 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 				s.tracks = append(s.tracks, vtrack)
 			}
 		}
+		s.AddTrack(v)
 	case *track.Audio:
 		switch v.CodecID {
 		case codec.CodecID_AAC:
@@ -45,6 +46,7 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 			s.audioTrackId = len(s.tracks)
 			s.tracks = append(s.tracks, gortsplib.NewTrackPCMU())
 		}
+		s.AddTrack(v)
 	case ISubscriber:
 		s.stream = gortsplib.NewServerStream(s.tracks)
 	case *AudioFrame:
@@ -55,6 +57,7 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 		for _, pack := range v.RTP {
 			s.stream.WritePacketRTP(s.videoTrackId, &pack.Packet)
 		}
+	default:
+		s.Subscriber.OnEvent(event)
 	}
-	s.Subscriber.OnEvent(event)
 }
