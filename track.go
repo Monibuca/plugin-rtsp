@@ -19,7 +19,8 @@ func NewPCMATrack() *TrackPCMA {
 }
 func (t *TrackPCMA) MediaDescription() *psdp.MediaDescription {
 	md := t.TrackPCMU.MediaDescription()
-	md.Attributes[0].Value = "0 PCMA/8000"
+	md.MediaName.Formats[0] = "8"
+	md.Attributes[0].Value = "8 PCMA/8000"
 	return md
 }
 
