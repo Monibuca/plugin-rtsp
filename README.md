@@ -1,8 +1,8 @@
 # RTSP插件
-
+rtsp插件提供rtsp协议的推拉流能力，以及向远程服务器推拉rtsp协议的能力。
 ## 插件地址
 
-github.com/Monibuca/plugin-rtsp
+https://github.com/Monibuca/plugin-rtsp
 
 ## 插件引入
 ```go
@@ -11,45 +11,71 @@ import (
 )
 ```
 
-## 默认插件配置
-
-```yaml
-rtsp:
-# 端口接收推流
-  listenaddr: :554
-  udpaddr: :8000
-  readbuffersize: 2048
+## 推拉地址形式
 ```
-### 特殊功能
+rtsp://localhost/live/test
+```
+- `localhost`是m7s的服务器域名或者IP地址，默认端口`554`可以不写，否则需要写
+- `live`代表`appName`
+- `test`代表`streamName`
+- m7s中`live/test`将作为`streamPath`为流的唯一标识
 
-当自动拉流列表中当的streamPath为sub/xxx 这种形式的话，在gb28181的分屏显示时会优先采用rtsp流，已实现分屏观看子码流效果
-## 插件功能
-
-### 接收RTSP协议的推流
 
 例如通过ffmpeg向m7s进行推流
 
 ```bash
-ffmpeg -i **** rtsp://localhost/live/test
+ffmpeg -i [视频源] -f rtsp rtsp://localhost/live/test
 ```
 
 会在m7s内部形成一个名为live/test的流
 
-### 从远程拉取rtsp到m7s中
 
-可调用接口
-`rtsp/api/pull?target=[RTSP地址]&streamPath=[流标识]`
-
-## 使用编程方式拉流
-```go
-new(RTSPClient).PullStream("live/user1","rtsp://xxx.xxx.xxx.xxx/live/user1") 
+如果m7s中已经存在live/test流的话就可以用rtsp协议进行播放
+```bash
+ffplay rtsp://localhost/live/test
 ```
 
-### 罗列所有的rtsp协议的流
 
-可调用接口
-`rtsp/api/list`
+## 配置
 
-### 从m7s中拉取rtsp协议流
+```yaml
+rtsp:
+    publish:
+        pubaudio: true
+        pubvideo: true
+        kickexist: false
+        publishtimeout: 10
+        waitclosetimeout: 0
+    subscribe:
+        subaudio: true
+        subvideo: true
+        iframeonly: false
+        waittimeout: 10
+    pull:
+        repull: 0
+        pullonstart: false
+        pullonsubscribe: false
+        pulllist: {}
+    push:
+        repush: 0
+        pushlist: {}
+    listenaddr: :554
+    udpaddr: :8000
+    rtcpaddr: :8001
+    readbuffersize: 2048
+```
+:::tip 配置覆盖
+publish
+subscribe
+两项中未配置部分将使用全局配置
+:::
+## API
 
-直接通过协议rtsp://xxx.xxx.xxx.xxx/live/user1 即可播放
+### `rtsp/api/list`
+获取所有rtsp流
+
+### `rtsp/api/pull?target=[RTSP地址]&streamPath=[流标识]`
+从远程拉取rtsp到m7s中
+
+### `rtsp/api/push?target=[RTSP地址]&streamPath=[流标识]`
+将本地的流推送到远端
