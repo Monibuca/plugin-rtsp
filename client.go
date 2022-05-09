@@ -1,6 +1,9 @@
 package rtsp
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/aler9/gortsplib"
 	"github.com/aler9/gortsplib/pkg/base"
 	"github.com/pion/rtp/v2"
@@ -85,24 +88,33 @@ func (p *RTSPPusher) Connect() error {
 	}
 	return nil
 }
-func (p *RTSPPusher) Push() {
-	u, err := base.ParseURL(p.RemoteURL)
-	_, err = p.Announce(u, p.tracks)
-	if err != nil {
-		p.Close()
-		return
-	}
-
-	for _, track := range p.tracks {
-		_, err := p.Setup(false, track, u, 0, 0)
+func (p *RTSPPusher) Push() (err error) {
+	var u *base.URL
+	u, err = base.ParseURL(p.RemoteURL)
+	defer func() {
 		if err != nil {
 			p.Close()
 		}
+	}()
+	startTime := time.Now()
+	for p.tracks == nil {
+		time.Sleep(time.Millisecond * 100)
+		if time.Since(startTime) > time.Second*5 {
+			return fmt.Errorf("timeout")
+		}
 	}
-
-	_, err = p.Record()
-	if err != nil {
-		p.Close()
+	if _, err = p.Announce(u, p.tracks); err != nil {
 		return
 	}
+	for _, track := range p.tracks {
+		_, err = p.Setup(false, track, u, 0, 0)
+		if err != nil {
+			return
+		}
+	}
+	if _, err = p.Record(); err != nil {
+		return
+	}
+	p.PlayBlock()
+	return
 }
