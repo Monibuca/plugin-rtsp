@@ -67,6 +67,20 @@ type RTSPPusher struct {
 	gortsplib.Transport
 }
 
+func (p *RTSPPusher) OnEvent(event any) {
+	switch v := event.(type) {
+	case *engine.AudioFrame:
+		for _, pack := range v.RTP {
+			p.Client.WritePacketRTP(p.audioTrackId, &pack.Packet)
+		}
+	case *engine.VideoFrame:
+		for _, pack := range v.RTP {
+			p.Client.WritePacketRTP(p.videoTrackId, &pack.Packet)
+		}
+	default:
+		p.RTSPSubscriber.OnEvent(event)
+	}
+}
 func (p *RTSPPusher) Connect() error {
 	if p.Transport == gortsplib.TransportTCP {
 		p.Transport = gortsplib.TransportUDP
@@ -86,7 +100,8 @@ func (p *RTSPPusher) Connect() error {
 	if err = p.Client.Start(u.Scheme, u.Host); err != nil {
 		return err
 	}
-	return nil
+	_, err = p.Client.Options(u)
+	return err
 }
 func (p *RTSPPusher) Push() (err error) {
 	var u *base.URL
@@ -97,9 +112,8 @@ func (p *RTSPPusher) Push() (err error) {
 		}
 	}()
 	startTime := time.Now()
-	for p.tracks == nil {
-		time.Sleep(time.Millisecond * 100)
-		if time.Since(startTime) > time.Second*5 {
+	for len(p.tracks) < 2 {
+		if time.Sleep(time.Second); time.Since(startTime) > time.Second*10 {
 			return fmt.Errorf("timeout")
 		}
 	}
