@@ -91,7 +91,9 @@ func (conf *RTSPConfig) OnAnnounce(ctx *gortsplib.ServerHandlerOnAnnounceCtx) (*
 	if err := plugin.Publish(ctx.Path, p); err == nil {
 		p.tracks = ctx.Tracks
 		p.stream = gortsplib.NewServerStream(ctx.Tracks)
-		p.SetTracks()
+		if err = p.SetTracks(); err != nil {
+			return nil, err
+		}
 		conf.Store(ctx.Conn, p)
 		conf.Store(ctx.Session, p)
 	} else {

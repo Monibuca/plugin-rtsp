@@ -3,6 +3,8 @@ package rtsp
 import (
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -18,14 +20,13 @@ type RTSPPublisher struct {
 	RTSPIO
 }
 
-func (p *RTSPPublisher) SetTracks() {
+func (p *RTSPPublisher) SetTracks() error {
 	p.Tracks = make([]common.AVTrack, len(p.tracks))
 	for trackId, track := range p.tracks {
 		md := track.MediaDescription()
 		v, ok := md.Attribute("rtpmap")
 		if !ok {
-			p.Error("rtpmap attribute not found")
-			return
+			return errors.New("rtpmap attribute not found")
 		}
 		v = strings.TrimSpace(v)
 		vals := strings.Split(v, " ")
@@ -108,7 +109,10 @@ func (p *RTSPPublisher) SetTracks() {
 				} else {
 					plugin.Warn("aac no config")
 				}
+			default:
+				return fmt.Errorf("unsupport codec:%s", keyval[0])
 			}
 		}
 	}
+	return nil
 }
