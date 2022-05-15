@@ -3,6 +3,7 @@ package rtsp
 import (
 	"github.com/aler9/gortsplib"
 	"github.com/aler9/gortsplib/pkg/aac"
+	"go.uber.org/zap"
 	. "m7s.live/engine/v4"
 	"m7s.live/engine/v4/codec"
 	"m7s.live/engine/v4/track"
@@ -35,9 +36,11 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 		case codec.CodecID_AAC:
 			var mpegConf aac.MPEG4AudioConfig
 			mpegConf.Decode(v.GetDecoderConfiguration().Raw)
-			if atrack, err := gortsplib.NewTrackAAC(97, int(mpegConf.Type), mpegConf.SampleRate, mpegConf.ChannelCount, mpegConf.AOTSpecificConfig); err == nil {
+			if atrack, err := gortsplib.NewTrackAAC(97, int(mpegConf.Type), mpegConf.SampleRate, mpegConf.ChannelCount, mpegConf.AOTSpecificConfig, 13, 3, 3); err == nil {
 				s.audioTrackId = len(s.tracks)
 				s.tracks = append(s.tracks, atrack)
+			} else {
+				v.Stream.Error("error creating AAC track", zap.Error(err))
 			}
 		case codec.CodecID_PCMA:
 			s.audioTrackId = len(s.tracks)
@@ -51,11 +54,11 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 		s.stream = gortsplib.NewServerStream(s.tracks)
 	case *AudioFrame:
 		for _, pack := range v.RTP {
-			s.stream.WritePacketRTP(s.audioTrackId, &pack.Packet)
+			s.stream.WritePacketRTP(s.audioTrackId, &pack.Packet, v.PTS == v.DTS)
 		}
 	case *VideoFrame:
 		for _, pack := range v.RTP {
-			s.stream.WritePacketRTP(s.videoTrackId, &pack.Packet)
+			s.stream.WritePacketRTP(s.videoTrackId, &pack.Packet, v.PTS == v.DTS)
 		}
 	default:
 		s.Subscriber.OnEvent(event)

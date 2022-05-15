@@ -6,7 +6,6 @@ import (
 
 	"github.com/aler9/gortsplib"
 	"github.com/aler9/gortsplib/pkg/base"
-	"github.com/pion/rtp/v2"
 	"m7s.live/engine/v4"
 )
 
@@ -24,11 +23,11 @@ func (p *RTSPPuller) Connect() error {
 		p.Transport = gortsplib.TransportTCP
 	}
 	p.Client = &gortsplib.Client{
-		OnPacketRTP: func(trackID int, packet *rtp.Packet) {
-			p.RTSPPublisher.Tracks[trackID].WriteRTPPack(packet)
+		OnPacketRTP: func(ctx *gortsplib.ClientOnPacketRTPCtx) {
+			p.RTSPPublisher.Tracks[ctx.TrackID].WriteRTPPack(ctx.Packet)
 		},
-		ReadBufferSize: rtspConfig.ReadBufferSize,
-		Transport:      &p.Transport,
+		ReadBufferCount: rtspConfig.ReadBufferSize,
+		Transport:       &p.Transport,
 	}
 	// parse URL
 	u, err := base.ParseURL(p.RemoteURL)
@@ -71,11 +70,11 @@ func (p *RTSPPusher) OnEvent(event any) {
 	switch v := event.(type) {
 	case *engine.AudioFrame:
 		for _, pack := range v.RTP {
-			p.Client.WritePacketRTP(p.audioTrackId, &pack.Packet)
+			p.Client.WritePacketRTP(p.audioTrackId, &pack.Packet, v.DTS == v.PTS)
 		}
 	case *engine.VideoFrame:
 		for _, pack := range v.RTP {
-			p.Client.WritePacketRTP(p.videoTrackId, &pack.Packet)
+			p.Client.WritePacketRTP(p.videoTrackId, &pack.Packet, v.DTS == v.PTS)
 		}
 	default:
 		p.RTSPSubscriber.OnEvent(event)
@@ -88,8 +87,8 @@ func (p *RTSPPusher) Connect() error {
 		p.Transport = gortsplib.TransportTCP
 	}
 	p.Client = &gortsplib.Client{
-		ReadBufferSize: rtspConfig.ReadBufferSize,
-		Transport:      &p.Transport,
+		ReadBufferCount: rtspConfig.ReadBufferSize,
+		Transport:       &p.Transport,
 	}
 	// parse URL
 	u, err := base.ParseURL(p.RemoteURL)
