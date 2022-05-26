@@ -58,12 +58,18 @@ func (p *RTSPPublisher) SetTracks() error {
 			switch strings.ToLower(keyval[0]) {
 			case "h264":
 				vt := NewH264(p.Stream)
+				if payloadType, err := strconv.Atoi(vals[0]); err == nil {
+					vt.DecoderConfiguration.PayloadType = byte(payloadType)
+				}
 				p.Tracks[trackId] = vt
 				t := track.(*gortsplib.TrackH264)
 				vt.WriteSlice(common.NALUSlice{t.SPS()})
 				vt.WriteSlice(common.NALUSlice{t.PPS()})
 			case "h265", "hevc":
 				vt := NewH265(p.Stream)
+				if payloadType, err := strconv.Atoi(vals[0]); err == nil {
+					vt.DecoderConfiguration.PayloadType = byte(payloadType)
+				}
 				p.Tracks[trackId] = vt
 				if v, ok := fmtp["sprop-vps"]; ok {
 					vps, _ := base64.StdEncoding.DecodeString(v)
@@ -79,6 +85,9 @@ func (p *RTSPPublisher) SetTracks() error {
 				}
 			case "pcma":
 				at := NewG711(p.Stream, true)
+				if payloadType, err := strconv.Atoi(vals[0]); err == nil {
+					at.DecoderConfiguration.PayloadType = byte(payloadType)
+				}
 				p.Tracks[trackId] = at
 				at.SampleRate = uint32(timeScale)
 				if len(keyval) >= 3 {
@@ -90,6 +99,9 @@ func (p *RTSPPublisher) SetTracks() error {
 				at.AVCCHead = []byte{(byte(at.CodecID) << 4) | (1 << 1)}
 			case "pcmu":
 				at := NewG711(p.Stream, false)
+				if payloadType, err := strconv.Atoi(vals[0]); err == nil {
+					at.DecoderConfiguration.PayloadType = byte(payloadType)
+				}
 				p.Tracks[trackId] = at
 				at.SampleRate = uint32(timeScale)
 				if len(keyval) >= 3 {
@@ -101,6 +113,9 @@ func (p *RTSPPublisher) SetTracks() error {
 				at.AVCCHead = []byte{(byte(at.CodecID) << 4) | (1 << 1)}
 			case "mpeg4-generic":
 				at := NewAAC(p.Stream)
+				if payloadType, err := strconv.Atoi(vals[0]); err == nil {
+					at.DecoderConfiguration.PayloadType = byte(payloadType)
+				}
 				p.Tracks[trackId] = at
 				if config, ok := fmtp["config"]; ok {
 					asc, _ := hex.DecodeString(config)

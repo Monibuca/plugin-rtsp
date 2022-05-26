@@ -8,19 +8,33 @@ import (
 	psdp "github.com/pion/sdp/v3"
 )
 
-type TrackPCMA struct {
+const (
+	pcma = "PCMA/8000"
+	pcmu = "PCMU/8000"
+)
+
+type TrackG711 struct {
 	*gortsplib.TrackPCMU
+	payloadType byte
+	format      string
 }
 
-func NewPCMATrack() *TrackPCMA {
-	return &TrackPCMA{
+func NewG711(payloadType byte, isPcma bool) *TrackG711 {
+	format := pcma
+	if !isPcma {
+		format = pcmu
+	}
+	format = fmt.Sprintf("%d %s", payloadType, format)
+	return &TrackG711{
 		gortsplib.NewTrackPCMU(),
+		payloadType,
+		format,
 	}
 }
-func (t *TrackPCMA) MediaDescription() *psdp.MediaDescription {
+func (t *TrackG711) MediaDescription() *psdp.MediaDescription {
 	md := t.TrackPCMU.MediaDescription()
-	md.MediaName.Formats[0] = "8"
-	md.Attributes[0].Value = "8 PCMA/8000"
+	md.MediaName.Formats[0] = fmt.Sprintf("%d", t.payloadType)
+	md.Attributes[0].Value = t.format
 	return md
 }
 

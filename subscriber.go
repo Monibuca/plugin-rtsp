@@ -19,13 +19,13 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 	case *track.Video:
 		switch v.CodecID {
 		case codec.CodecID_H264:
-			extra := v.GetDecoderConfiguration().Raw
-			if vtrack, err := gortsplib.NewTrackH264(96, extra[0], extra[1], nil); err == nil {
+			extra := v.DecoderConfiguration.Raw
+			if vtrack, err := gortsplib.NewTrackH264(v.DecoderConfiguration.PayloadType, extra[0], extra[1], nil); err == nil {
 				s.videoTrackId = len(s.tracks)
 				s.tracks = append(s.tracks, vtrack)
 			}
 		case codec.CodecID_H265:
-			if vtrack, err := NewH265Track(96, v.GetDecoderConfiguration().Raw); err == nil {
+			if vtrack, err := NewH265Track(v.DecoderConfiguration.PayloadType, v.DecoderConfiguration.Raw); err == nil {
 				s.videoTrackId = len(s.tracks)
 				s.tracks = append(s.tracks, vtrack)
 			}
@@ -35,8 +35,8 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 		switch v.CodecID {
 		case codec.CodecID_AAC:
 			var mpegConf aac.MPEG4AudioConfig
-			mpegConf.Decode(v.GetDecoderConfiguration().Raw)
-			if atrack, err := gortsplib.NewTrackAAC(97, int(mpegConf.Type), mpegConf.SampleRate, mpegConf.ChannelCount, mpegConf.AOTSpecificConfig, 13, 3, 3); err == nil {
+			mpegConf.Decode(v.DecoderConfiguration.Raw)
+			if atrack, err := gortsplib.NewTrackAAC(v.DecoderConfiguration.PayloadType, int(mpegConf.Type), mpegConf.SampleRate, mpegConf.ChannelCount, mpegConf.AOTSpecificConfig, 13, 3, 3); err == nil {
 				s.audioTrackId = len(s.tracks)
 				s.tracks = append(s.tracks, atrack)
 			} else {
@@ -44,10 +44,10 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 			}
 		case codec.CodecID_PCMA:
 			s.audioTrackId = len(s.tracks)
-			s.tracks = append(s.tracks, NewPCMATrack())
+			s.tracks = append(s.tracks, NewG711(v.DecoderConfiguration.PayloadType, true))
 		case codec.CodecID_PCMU:
 			s.audioTrackId = len(s.tracks)
-			s.tracks = append(s.tracks, gortsplib.NewTrackPCMU())
+			s.tracks = append(s.tracks, NewG711(v.DecoderConfiguration.PayloadType, false))
 		}
 		s.AddTrack(v)
 	case ISubscriber:
