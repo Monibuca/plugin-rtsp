@@ -1,9 +1,6 @@
 package rtsp
 
 import (
-	"fmt"
-	"time"
-
 	"github.com/aler9/gortsplib"
 	"github.com/aler9/gortsplib/pkg/base"
 	"m7s.live/engine/v4"
@@ -110,12 +107,12 @@ func (p *RTSPPusher) Push() (err error) {
 			p.Close()
 		}
 	}()
-	startTime := time.Now()
-	for len(p.tracks) < 2 {
-		if time.Sleep(time.Second); time.Since(startTime) > time.Second*10 {
-			return fmt.Errorf("timeout")
-		}
-	}
+	// startTime := time.Now()
+	// for len(p.tracks) < 2 {
+	// 	if time.Sleep(time.Second); time.Since(startTime) > time.Second*10 {
+	// 		return fmt.Errorf("timeout")
+	// 	}
+	// }
 	if _, err = p.Announce(u, p.tracks); err != nil {
 		return
 	}
