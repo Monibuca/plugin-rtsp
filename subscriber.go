@@ -44,10 +44,10 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 			}
 		case codec.CodecID_PCMA:
 			s.audioTrackId = len(s.tracks)
-			s.tracks = append(s.tracks, NewG711(v.DecoderConfiguration.PayloadType, true))
+			s.tracks = append(s.tracks, gortsplib.NewTrackPCMA())
 		case codec.CodecID_PCMU:
 			s.audioTrackId = len(s.tracks)
-			s.tracks = append(s.tracks, NewG711(v.DecoderConfiguration.PayloadType, false))
+			s.tracks = append(s.tracks, gortsplib.NewTrackPCMU())
 		}
 		s.AddTrack(v)
 	case ISubscriber:
