@@ -2,7 +2,7 @@ package rtsp
 
 import (
 	"github.com/aler9/gortsplib"
-	"github.com/aler9/gortsplib/pkg/base"
+	"github.com/aler9/gortsplib/pkg/url"
 	"m7s.live/engine/v4"
 )
 
@@ -27,7 +27,7 @@ func (p *RTSPPuller) Connect() error {
 		Transport:       &p.Transport,
 	}
 	// parse URL
-	u, err := base.ParseURL(p.RemoteURL)
+	u, err := url.Parse(p.RemoteURL)
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (p *RTSPPuller) Connect() error {
 }
 
 func (p *RTSPPuller) Pull() {
-	u, _ := base.ParseURL(p.RemoteURL)
+	u, _ := url.Parse(p.RemoteURL)
 	if _, err := p.Options(u); err != nil {
 		return
 	}
@@ -88,7 +88,7 @@ func (p *RTSPPusher) Connect() error {
 		Transport:       &p.Transport,
 	}
 	// parse URL
-	u, err := base.ParseURL(p.RemoteURL)
+	u, err := url.Parse(p.RemoteURL)
 	if err != nil {
 		return err
 	}
@@ -100,8 +100,8 @@ func (p *RTSPPusher) Connect() error {
 	return err
 }
 func (p *RTSPPusher) Push() (err error) {
-	var u *base.URL
-	u, err = base.ParseURL(p.RemoteURL)
+	var u *url.URL
+	u, err = url.Parse(p.RemoteURL)
 	defer func() {
 		if err != nil {
 			p.Close()
