@@ -125,6 +125,6 @@ func (p *RTSPPusher) Push() (err error) {
 	if _, err = p.Record(); err != nil {
 		return
 	}
-	p.PlayBlock()
+	p.PlayRaw()
 	return
 }

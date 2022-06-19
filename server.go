@@ -73,7 +73,7 @@ func (conf *RTSPConfig) OnPlay(ctx *gortsplib.ServerHandlerOnPlayCtx) (*base.Res
 		case *RTSPSubscriber:
 			resp.StatusCode = base.StatusOK
 			go func() {
-				v.PlayBlock()
+				v.PlayRaw()
 				ctx.Session.Close()
 			}()
 		}
