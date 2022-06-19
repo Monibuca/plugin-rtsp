@@ -16,7 +16,7 @@ import (
 
 type RTSPPublisher struct {
 	Publisher
-	Tracks []common.AVTrack
+	Tracks []common.AVTrack `json:"-"`
 	RTSPIO
 }
 

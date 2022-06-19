@@ -9,7 +9,7 @@ import (
 type RTSPPuller struct {
 	RTSPPublisher
 	engine.Puller
-	*gortsplib.Client
+	*gortsplib.Client `json:"-"`
 	gortsplib.Transport
 }
 
