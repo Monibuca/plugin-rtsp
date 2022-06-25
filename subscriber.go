@@ -52,14 +52,10 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 		s.AddTrack(v)
 	case ISubscriber:
 		s.stream = gortsplib.NewServerStream(s.tracks)
-	case *AudioFrame:
-		for _, pack := range v.RTP {
-			s.stream.WritePacketRTP(s.audioTrackId, &pack.Packet, v.PTS == v.DTS)
-		}
-	case *VideoFrame:
-		for _, pack := range v.RTP {
-			s.stream.WritePacketRTP(s.videoTrackId, &pack.Packet, v.PTS == v.DTS)
-		}
+	case VideoRTP:
+		s.stream.WritePacketRTP(s.videoTrackId, &v.Packet, s.Video.Frame.PTS == s.Video.Frame.DTS)
+	case AudioRTP:
+		s.stream.WritePacketRTP(s.audioTrackId, &v.Packet, s.Audio.Frame.PTS == s.Audio.Frame.DTS)
 	default:
 		s.Subscriber.OnEvent(event)
 	}

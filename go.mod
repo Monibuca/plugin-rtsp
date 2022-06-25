@@ -4,18 +4,13 @@ go 1.18
 
 require (
 	github.com/aler9/gortsplib v0.0.0-20220604232719-2fa3148a2751
-	github.com/pion/rtp/v2 v2.0.0-20220302185659-b3d10fc096b0
-	github.com/pion/sdp/v3 v3.0.5
 	go.uber.org/zap v1.21.0
-	m7s.live/engine/v4 v4.1.2
+	m7s.live/engine/v4 v4.4.0
 )
 
 require (
 	github.com/cnotch/ipchub v1.1.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
-	github.com/gobwas/httphead v0.1.0 // indirect
-	github.com/gobwas/pool v0.2.1 // indirect
-	github.com/gobwas/ws v1.1.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/icza/bitio v1.1.0 // indirect
 	github.com/logrusorgru/aurora v2.0.3+incompatible // indirect
@@ -23,6 +18,7 @@ require (
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.9 // indirect
 	github.com/pion/rtp v1.7.13 // indirect
+	github.com/pion/sdp/v3 v3.0.5 // indirect
 	github.com/power-devops/perfstat v0.0.0-20220216144756-c35f1ee13d7c // indirect
 	github.com/q191201771/naza v0.30.2 // indirect
 	github.com/shirou/gopsutil/v3 v3.22.5 // indirect
@@ -34,6 +30,5 @@ require (
 	golang.org/x/net v0.0.0-20220531201128-c960675eff93 // indirect
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

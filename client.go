@@ -65,14 +65,10 @@ type RTSPPusher struct {
 
 func (p *RTSPPusher) OnEvent(event any) {
 	switch v := event.(type) {
-	case *engine.AudioFrame:
-		for _, pack := range v.RTP {
-			p.Client.WritePacketRTP(p.audioTrackId, &pack.Packet, v.DTS == v.PTS)
-		}
-	case *engine.VideoFrame:
-		for _, pack := range v.RTP {
-			p.Client.WritePacketRTP(p.videoTrackId, &pack.Packet, v.DTS == v.PTS)
-		}
+	case engine.VideoRTP:
+		p.Client.WritePacketRTP(p.videoTrackId, &v.Packet, p.Video.Frame.PTS == p.Video.Frame.DTS)
+	case engine.AudioRTP:
+		p.Client.WritePacketRTP(p.audioTrackId, &v.Packet, p.Audio.Frame.PTS == p.Audio.Frame.DTS)
 	default:
 		p.RTSPSubscriber.OnEvent(event)
 	}
@@ -125,6 +121,6 @@ func (p *RTSPPusher) Push() (err error) {
 	if _, err = p.Record(); err != nil {
 		return
 	}
-	p.PlayRaw()
+	p.PlayRTP()
 	return
 }
