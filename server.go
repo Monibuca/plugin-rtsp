@@ -112,7 +112,9 @@ func (conf *RTSPConfig) OnPacketRTP(ctx *gortsplib.ServerHandlerOnPacketRTPCtx) 
 	if p, ok := conf.Load(ctx.Session); ok {
 		switch v := p.(type) {
 		case *RTSPPublisher:
-			v.Tracks[ctx.TrackID].WriteRTPPack(ctx.Packet)
+			if v.Tracks[ctx.TrackID] != nil {
+				v.Tracks[ctx.TrackID].WriteRTPPack(ctx.Packet)
+			}
 		}
 	}
 }

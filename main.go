@@ -21,6 +21,7 @@ type RTSPConfig struct {
 	UDPAddr        string
 	RTCPAddr       string
 	ReadBufferSize int
+	PullProtocol   string //tcp、udp、 auto（default）
 	sync.Map
 }
 

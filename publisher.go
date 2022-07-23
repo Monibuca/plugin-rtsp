@@ -63,8 +63,8 @@ func (p *RTSPPublisher) SetTracks() error {
 				}
 				p.Tracks[trackId] = vt
 				t := track.(*gortsplib.TrackH264)
-				vt.WriteSlice(common.NALUSlice{t.SPS()})
-				vt.WriteSlice(common.NALUSlice{t.PPS()})
+				vt.WriteSlice(common.NALUSlice{t.SPS})
+				vt.WriteSlice(common.NALUSlice{t.PPS})
 			case "h265", "hevc":
 				vt := NewH265(p.Stream)
 				if payloadType, err := strconv.Atoi(vals[0]); err == nil {

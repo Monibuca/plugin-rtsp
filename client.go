@@ -14,14 +14,23 @@ type RTSPPuller struct {
 }
 
 func (p *RTSPPuller) Connect() error {
-	if p.Transport == gortsplib.TransportTCP {
-		p.Transport = gortsplib.TransportUDP
-	} else {
+	switch rtspConfig.PullProtocol {
+	case "tcp", "TCP":
 		p.Transport = gortsplib.TransportTCP
+	case "udp", "UDP":
+		p.Transport = gortsplib.TransportUDP
+	default:
+		if p.Transport == gortsplib.TransportTCP {
+			p.Transport = gortsplib.TransportUDP
+		} else {
+			p.Transport = gortsplib.TransportTCP
+		}
 	}
 	p.Client = &gortsplib.Client{
 		OnPacketRTP: func(ctx *gortsplib.ClientOnPacketRTPCtx) {
-			p.RTSPPublisher.Tracks[ctx.TrackID].WriteRTPPack(ctx.Packet)
+			if p.RTSPPublisher.Tracks[ctx.TrackID] != nil {
+				p.RTSPPublisher.Tracks[ctx.TrackID].WriteRTPPack(ctx.Packet)
+			}
 		},
 		ReadBufferCount: rtspConfig.ReadBufferSize,
 		Transport:       &p.Transport,
