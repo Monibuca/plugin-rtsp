@@ -3,7 +3,7 @@ module m7s.live/plugin/rtsp/v4
 go 1.18
 
 require (
-	github.com/aler9/gortsplib v0.0.0-20220604232719-2fa3148a2751
+	github.com/aler9/gortsplib v0.0.0-20220717125404-c6972424d6b8
 	go.uber.org/zap v1.21.0
 	m7s.live/engine/v4 v4.4.0
 )
@@ -12,7 +12,6 @@ require (
 	github.com/cnotch/ipchub v1.1.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/icza/bitio v1.1.0 // indirect
 	github.com/logrusorgru/aurora v2.0.3+incompatible // indirect
 	github.com/lufia/plan9stats v0.0.0-20220517141722-cf486979b281 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
