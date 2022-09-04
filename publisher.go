@@ -126,7 +126,7 @@ func (p *RTSPPublisher) SetTracks() error {
 					// 复用AVCC写入逻辑，解析出AAC的配置信息
 					at.WriteAVCC(0, append([]byte{0xAF, 0}, asc...))
 				} else {
-					plugin.Warn("aac no config")
+					RTSPPlugin.Warn("aac no config")
 				}
 			default:
 				return fmt.Errorf("unsupport codec:%s", keyval[0])

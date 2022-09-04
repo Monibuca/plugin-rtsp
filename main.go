@@ -40,16 +40,16 @@ func (conf *RTSPConfig) OnEvent(event any) {
 		s.Start()
 		if conf.PullOnStart {
 			for streamPath, url := range conf.PullList {
-				if err := plugin.Pull(streamPath, url, new(RTSPPuller), false); err != nil {
-					plugin.Error("pull", zap.String("streamPath", streamPath), zap.String("url", url), zap.Error(err))
+				if err := RTSPPlugin.Pull(streamPath, url, new(RTSPPuller), false); err != nil {
+					RTSPPlugin.Error("pull", zap.String("streamPath", streamPath), zap.String("url", url), zap.Error(err))
 				}
 			}
 		}
 	case SEpublish:
 		for streamPath, url := range conf.PushList {
 			if streamPath == v.Stream.Path {
-				if err := plugin.Push(streamPath, url, new(RTSPPusher), false); err != nil {
-					plugin.Error("push", zap.String("streamPath", streamPath), zap.String("url", url), zap.Error(err))
+				if err := RTSPPlugin.Push(streamPath, url, new(RTSPPusher), false); err != nil {
+					RTSPPlugin.Error("push", zap.String("streamPath", streamPath), zap.String("url", url), zap.Error(err))
 				}
 			}
 		}
@@ -57,8 +57,8 @@ func (conf *RTSPConfig) OnEvent(event any) {
 		if conf.PullOnSubscribe {
 			for streamPath, url := range conf.PullList {
 				if streamPath == v.Path {
-					if err := plugin.Pull(streamPath, url, new(RTSPPuller), false); err != nil {
-						plugin.Error("pull", zap.String("streamPath", streamPath), zap.String("url", url), zap.Error(err))
+					if err := RTSPPlugin.Pull(streamPath, url, new(RTSPPuller), false); err != nil {
+						RTSPPlugin.Error("pull", zap.String("streamPath", streamPath), zap.String("url", url), zap.Error(err))
 					}
 					break
 				}
@@ -73,7 +73,7 @@ var rtspConfig = &RTSPConfig{
 	RTCPAddr:       ":8001",
 	ReadBufferSize: 2048,
 }
-var plugin = InstallPlugin(rtspConfig)
+var RTSPPlugin = InstallPlugin(rtspConfig)
 
 func filterStreams() (ss []*Stream) {
 	Streams.RLock()
@@ -92,15 +92,19 @@ func (*RTSPConfig) API_list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (*RTSPConfig) API_Pull(rw http.ResponseWriter, r *http.Request) {
-	err := plugin.Pull(r.URL.Query().Get("streamPath"), r.URL.Query().Get("target"), new(RTSPPuller), r.URL.Query().Has("save"))
+	err := RTSPPlugin.Pull(r.URL.Query().Get("streamPath"), r.URL.Query().Get("target"), new(RTSPPuller), r.URL.Query().Has("save"))
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
+	} else {
+		rw.Write([]byte("ok"))
 	}
 }
 
 func (*RTSPConfig) API_Push(rw http.ResponseWriter, r *http.Request) {
-	err := plugin.Push(r.URL.Query().Get("streamPath"), r.URL.Query().Get("target"), new(RTSPPusher), r.URL.Query().Has("save"))
+	err := RTSPPlugin.Push(r.URL.Query().Get("streamPath"), r.URL.Query().Get("target"), new(RTSPPusher), r.URL.Query().Has("save"))
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
+	} else {
+		rw.Write([]byte("ok"))
 	}
 }

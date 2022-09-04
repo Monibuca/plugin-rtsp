@@ -14,22 +14,22 @@ type RTSPIO struct {
 }
 
 func (conf *RTSPConfig) OnConnOpen(ctx *gortsplib.ServerHandlerOnConnOpenCtx) {
-	plugin.Debug("conn opened")
+	RTSPPlugin.Debug("conn opened")
 }
 
 func (conf *RTSPConfig) OnConnClose(ctx *gortsplib.ServerHandlerOnConnCloseCtx) {
-	plugin.Debug("conn closed")
+	RTSPPlugin.Debug("conn closed")
 	if p, ok := conf.LoadAndDelete(ctx.Conn); ok {
 		p.(IIO).Stop()
 	}
 }
 
 func (conf *RTSPConfig) OnSessionOpen(ctx *gortsplib.ServerHandlerOnSessionOpenCtx) {
-	plugin.Debug("session opened")
+	RTSPPlugin.Debug("session opened")
 }
 
 func (conf *RTSPConfig) OnSessionClose(ctx *gortsplib.ServerHandlerOnSessionCloseCtx) {
-	plugin.Debug("session closed")
+	RTSPPlugin.Debug("session closed")
 	if p, ok := conf.LoadAndDelete(ctx.Session); ok {
 		p.(IIO).Stop()
 	}
@@ -37,10 +37,10 @@ func (conf *RTSPConfig) OnSessionClose(ctx *gortsplib.ServerHandlerOnSessionClos
 
 // called after receiving a DESCRIBE request.
 func (conf *RTSPConfig) OnDescribe(ctx *gortsplib.ServerHandlerOnDescribeCtx) (*base.Response, *gortsplib.ServerStream, error) {
-	plugin.Debug("describe request")
+	RTSPPlugin.Debug("describe request")
 	var suber RTSPSubscriber
 	suber.SetIO(ctx.Conn.NetConn())
-	if err := plugin.Subscribe(ctx.Path, &suber); err == nil {
+	if err := RTSPPlugin.Subscribe(ctx.Path, &suber); err == nil {
 		conf.Store(ctx.Conn, &suber)
 		return &base.Response{
 			StatusCode: base.StatusOK,
@@ -90,7 +90,7 @@ func (conf *RTSPConfig) OnRecord(ctx *gortsplib.ServerHandlerOnRecordCtx) (*base
 func (conf *RTSPConfig) OnAnnounce(ctx *gortsplib.ServerHandlerOnAnnounceCtx) (*base.Response, error) {
 	p := &RTSPPublisher{}
 	p.SetIO(ctx.Conn.NetConn())
-	if err := plugin.Publish(ctx.Path, p); err == nil {
+	if err := RTSPPlugin.Publish(ctx.Path, p); err == nil {
 		p.tracks = ctx.Tracks
 		p.stream = gortsplib.NewServerStream(ctx.Tracks)
 		if err = p.SetTracks(); err != nil {
