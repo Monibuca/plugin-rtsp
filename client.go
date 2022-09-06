@@ -3,6 +3,7 @@ package rtsp
 import (
 	"github.com/aler9/gortsplib"
 	"github.com/aler9/gortsplib/pkg/url"
+	"go.uber.org/zap"
 	"m7s.live/engine/v4"
 )
 
@@ -50,16 +51,19 @@ func (p *RTSPPuller) Connect() error {
 func (p *RTSPPuller) Pull() {
 	u, _ := url.Parse(p.RemoteURL)
 	if _, err := p.Options(u); err != nil {
+		p.Error("Options", zap.Error(err))
 		return
 	}
 	// find published tracks
 	tracks, baseURL, _, err := p.Describe(u)
 	if err != nil {
+		p.Error("Describe", zap.Error(err))
 		return
 	}
 	p.tracks = tracks
 	p.SetTracks()
 	if err = p.SetupAndPlay(tracks, baseURL); err != nil {
+		p.Error("SetupAndPlay", zap.Error(err))
 		return
 	}
 	p.Wait()
@@ -95,10 +99,12 @@ func (p *RTSPPusher) Connect() error {
 	// parse URL
 	u, err := url.Parse(p.RemoteURL)
 	if err != nil {
+		p.Error("url.Parse", zap.Error(err))
 		return err
 	}
 	// connect to the server
 	if err = p.Client.Start(u.Scheme, u.Host); err != nil {
+		p.Error("Client.Start", zap.Error(err))
 		return err
 	}
 	_, err = p.Client.Options(u)
@@ -119,15 +125,18 @@ func (p *RTSPPusher) Push() (err error) {
 	// 	}
 	// }
 	if _, err = p.Announce(u, p.tracks); err != nil {
+		p.Error("Announce", zap.Error(err))
 		return
 	}
 	for _, track := range p.tracks {
 		_, err = p.Setup(false, track, u, 0, 0)
 		if err != nil {
+			p.Error("Setup", zap.Error(err))
 			return
 		}
 	}
 	if _, err = p.Record(); err != nil {
+		p.Error("Record", zap.Error(err))
 		return
 	}
 	p.PlayRTP()
