@@ -37,7 +37,10 @@ func (conf *RTSPConfig) OnEvent(event any) {
 			MulticastRTPPort:  8002,
 			MulticastRTCPPort: 8003,
 		}
-		s.Start()
+		if err := s.Start(); err != nil {
+			RTSPPlugin.Error("server start", zap.Error(err))
+			v["enabled"] = false
+		}
 		if conf.PullOnStart {
 			for streamPath, url := range conf.PullList {
 				if err := RTSPPlugin.Pull(streamPath, url, new(RTSPPuller), false); err != nil {
