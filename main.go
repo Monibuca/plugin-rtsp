@@ -39,7 +39,7 @@ func (conf *RTSPConfig) OnEvent(event any) {
 		}
 		if err := s.Start(); err != nil {
 			RTSPPlugin.Error("server start", zap.Error(err))
-			v["enabled"] = false
+			v["enable"] = false
 		}
 		if conf.PullOnStart {
 			for streamPath, url := range conf.PullList {
