@@ -2,7 +2,7 @@ package rtsp
 
 import (
 	"github.com/aler9/gortsplib"
-	"github.com/aler9/gortsplib/pkg/aac"
+	"github.com/aler9/gortsplib/pkg/mpeg4audio"
 	. "m7s.live/engine/v4"
 	"m7s.live/engine/v4/codec"
 	"m7s.live/engine/v4/track"
@@ -35,16 +35,15 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 	case *track.Audio:
 		switch v.CodecID {
 		case codec.CodecID_AAC:
-			var mpegConf aac.MPEG4AudioConfig
+			var mpegConf mpeg4audio.Config
 			mpegConf.Unmarshal(v.DecoderConfiguration.Raw)
-			atrack := &gortsplib.TrackAAC{
+			atrack := &gortsplib.TrackMPEG4Audio{
 				PayloadType: v.DecoderConfiguration.PayloadType, Config: &mpegConf, SizeLength: 13, IndexLength: 3, IndexDeltaLength: 3,
 			}
 			s.audioTrackId = len(s.tracks)
 			s.tracks = append(s.tracks, atrack)
 		case codec.CodecID_PCMA:
 			s.audioTrackId = len(s.tracks)
-
 			s.tracks = append(s.tracks, &gortsplib.TrackPCMA{})
 		case codec.CodecID_PCMU:
 			s.audioTrackId = len(s.tracks)
@@ -54,9 +53,9 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 	case ISubscriber:
 		s.stream = gortsplib.NewServerStream(s.tracks)
 	case VideoRTP:
-		s.stream.WritePacketRTP(s.videoTrackId, &v.Packet, s.Video.Frame.PTS == s.Video.Frame.DTS)
+		s.stream.WritePacketRTP(s.videoTrackId, &v.Packet)
 	case AudioRTP:
-		s.stream.WritePacketRTP(s.audioTrackId, &v.Packet, s.Audio.Frame.PTS == s.Audio.Frame.DTS)
+		s.stream.WritePacketRTP(s.audioTrackId, &v.Packet)
 	default:
 		s.Subscriber.OnEvent(event)
 	}

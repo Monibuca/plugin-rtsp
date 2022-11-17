@@ -41,6 +41,7 @@ func (conf *RTSPConfig) OnDescribe(ctx *gortsplib.ServerHandlerOnDescribeCtx) (*
 	var suber RTSPSubscriber
 	suber.SetIO(ctx.Conn.NetConn())
 	if err := RTSPPlugin.Subscribe(ctx.Path, &suber); err == nil {
+		RTSPPlugin.Debug("describe replay ok")
 		conf.Store(ctx.Conn, &suber)
 		return &base.Response{
 			StatusCode: base.StatusOK,
