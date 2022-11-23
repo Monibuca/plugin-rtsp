@@ -45,6 +45,7 @@ func (p *RTSPPuller) Connect() error {
 	if err = p.Client.Start(u.Scheme, u.Host); err != nil {
 		return err
 	}
+	p.SetIO(p.Client)
 	return nil
 }
 
@@ -107,6 +108,7 @@ func (p *RTSPPusher) Connect() error {
 		p.Error("Client.Start", zap.Error(err))
 		return err
 	}
+	p.SetIO(p.Client)
 	_, err = p.Client.Options(u)
 	return err
 }
