@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/aler9/gortsplib v0.0.0-20221115222755-87d5a512b129
 	go.uber.org/zap v1.23.0
-	m7s.live/engine/v4 v4.8.4
+	m7s.live/engine/v4 v4.9.3
 )
 
 require (
@@ -22,11 +22,12 @@ require (
 	github.com/marten-seemann/qtls-go1-18 v0.1.3 // indirect
 	github.com/marten-seemann/qtls-go1-19 v0.1.1 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
-	github.com/onsi/ginkgo v1.16.4 // indirect
+	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.10 // indirect
 	github.com/pion/rtp v1.7.13 // indirect
 	github.com/pion/sdp/v3 v3.0.6 // indirect
+	github.com/pion/webrtc/v3 v3.1.44 // indirect
 	github.com/power-devops/perfstat v0.0.0-20220216144756-c35f1ee13d7c // indirect
 	github.com/q191201771/naza v0.30.8 // indirect
 	github.com/shirou/gopsutil/v3 v3.22.10 // indirect
@@ -35,7 +36,7 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
+	golang.org/x/crypto v0.0.0-20220516162934-403b01795ae8 // indirect
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
 	golang.org/x/net v0.2.0 // indirect

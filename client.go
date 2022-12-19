@@ -49,9 +49,9 @@ func (p *RTSPPuller) Connect() error {
 	return nil
 }
 
-func (p *RTSPPuller) Pull() {
+func (p *RTSPPuller) Pull() (err error) {
 	u, _ := url.Parse(p.RemoteURL)
-	if _, err := p.Options(u); err != nil {
+	if _, err = p.Options(u); err != nil {
 		p.Error("Options", zap.Error(err))
 		return
 	}
@@ -68,6 +68,7 @@ func (p *RTSPPuller) Pull() {
 		return
 	}
 	p.Wait()
+	return
 }
 
 type RTSPPusher struct {
