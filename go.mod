@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/aler9/gortsplib v0.0.0-20221115222755-87d5a512b129
 	go.uber.org/zap v1.23.0
-	m7s.live/engine/v4 v4.9.3
+	m7s.live/engine/v4 v4.9.5
 )
 
 require (

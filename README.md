@@ -53,9 +53,8 @@ rtsp:
         waittimeout: 10
     pull:
         repull: 0
-        pullonstart: false
-        pullonsubscribe: false
-        pulllist: {}
+        pullonstart: {}
+        pullonsub: {}
     push:
         repush: 0
         pushlist: {}

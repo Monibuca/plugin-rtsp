@@ -2,6 +2,7 @@ package rtsp
 
 import (
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -41,11 +42,9 @@ func (conf *RTSPConfig) OnEvent(event any) {
 			RTSPPlugin.Error("server start", zap.Error(err))
 			v["enable"] = false
 		}
-		if conf.PullOnStart {
-			for streamPath, url := range conf.PullList {
-				if err := RTSPPlugin.Pull(streamPath, url, new(RTSPPuller), false); err != nil {
-					RTSPPlugin.Error("pull", zap.String("streamPath", streamPath), zap.String("url", url), zap.Error(err))
-				}
+		for streamPath, url := range conf.PullOnStart {
+			if err := RTSPPlugin.Pull(streamPath, url, new(RTSPPuller), 0); err != nil {
+				RTSPPlugin.Error("pull", zap.String("streamPath", streamPath), zap.String("url", url), zap.Error(err))
 			}
 		}
 	case SEpublish:
@@ -57,14 +56,12 @@ func (conf *RTSPConfig) OnEvent(event any) {
 			}
 		}
 	case *Stream: //按需拉流
-		if conf.PullOnSubscribe {
-			for streamPath, url := range conf.PullList {
-				if streamPath == v.Path {
-					if err := RTSPPlugin.Pull(streamPath, url, new(RTSPPuller), false); err != nil {
-						RTSPPlugin.Error("pull", zap.String("streamPath", streamPath), zap.String("url", url), zap.Error(err))
-					}
-					break
+		for streamPath, url := range conf.PullOnSub {
+			if streamPath == v.Path {
+				if err := RTSPPlugin.Pull(streamPath, url, new(RTSPPuller), 0); err != nil {
+					RTSPPlugin.Error("pull", zap.String("streamPath", streamPath), zap.String("url", url), zap.Error(err))
 				}
+				break
 			}
 		}
 	}
@@ -95,7 +92,8 @@ func (*RTSPConfig) API_list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (*RTSPConfig) API_Pull(rw http.ResponseWriter, r *http.Request) {
-	err := RTSPPlugin.Pull(r.URL.Query().Get("streamPath"), r.URL.Query().Get("target"), new(RTSPPuller), r.URL.Query().Has("save"))
+	save, _ := strconv.Atoi(r.URL.Query().Get("save"))
+	err := RTSPPlugin.Pull(r.URL.Query().Get("streamPath"), r.URL.Query().Get("target"), new(RTSPPuller), save)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 	} else {
