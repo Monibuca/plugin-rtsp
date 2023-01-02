@@ -16,6 +16,9 @@ type RTSPSubscriber struct {
 func (s *RTSPSubscriber) OnEvent(event any) {
 	switch v := event.(type) {
 	case *track.Video:
+		if s.Video.Track != nil {
+			return
+		}
 		switch v.CodecID {
 		case codec.CodecID_H264:
 			extra := v.DecoderConfiguration.Raw
@@ -33,6 +36,9 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 		}
 		s.AddTrack(v)
 	case *track.Audio:
+		if s.Audio.Track != nil {
+			return
+		}
 		switch v.CodecID {
 		case codec.CodecID_AAC:
 			var mpegConf mpeg4audio.Config

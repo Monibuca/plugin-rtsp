@@ -40,7 +40,11 @@ func (conf *RTSPConfig) OnDescribe(ctx *gortsplib.ServerHandlerOnDescribeCtx) (*
 	RTSPPlugin.Debug("describe request")
 	var suber RTSPSubscriber
 	suber.SetIO(ctx.Conn.NetConn())
-	if err := RTSPPlugin.Subscribe(ctx.Path, &suber); err == nil {
+	streamPath := ctx.Path
+	if ctx.Query != "" {
+		streamPath = streamPath + "?" + ctx.Query
+	}
+	if err := RTSPPlugin.Subscribe(streamPath, &suber); err == nil {
 		RTSPPlugin.Debug("describe replay ok")
 		conf.Store(ctx.Conn, &suber)
 		return &base.Response{
