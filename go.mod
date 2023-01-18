@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/aler9/gortsplib v0.0.0-20221115222755-87d5a512b129
 	go.uber.org/zap v1.23.0
-	m7s.live/engine/v4 v4.9.5
+	m7s.live/engine/v4 v4.10.0
 )
 
 require (
@@ -27,7 +27,6 @@ require (
 	github.com/pion/rtp v1.7.13 // indirect
 	github.com/pion/sdp/v3 v3.0.6 // indirect
 	github.com/pion/webrtc/v3 v3.1.49 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/power-devops/perfstat v0.0.0-20220216144756-c35f1ee13d7c // indirect
 	github.com/q191201771/naza v0.30.8 // indirect
 	github.com/shirou/gopsutil/v3 v3.22.10 // indirect

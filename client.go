@@ -51,6 +51,7 @@ func (p *RTSPPuller) Connect() error {
 
 func (p *RTSPPuller) Pull() (err error) {
 	u, _ := url.Parse(p.RemoteURL)
+	defer p.Stop()
 	if _, err = p.Options(u); err != nil {
 		p.Error("Options", zap.Error(err))
 		return
@@ -67,8 +68,7 @@ func (p *RTSPPuller) Pull() (err error) {
 		p.Error("SetupAndPlay", zap.Error(err))
 		return
 	}
-	p.Wait()
-	return
+	return p.Wait()
 }
 
 type RTSPPusher struct {
@@ -116,11 +116,7 @@ func (p *RTSPPusher) Connect() error {
 func (p *RTSPPusher) Push() (err error) {
 	var u *url.URL
 	u, err = url.Parse(p.RemoteURL)
-	defer func() {
-		if err != nil {
-			p.Close()
-		}
-	}()
+	defer p.Stop()
 	// startTime := time.Now()
 	// for len(p.tracks) < 2 {
 	// 	if time.Sleep(time.Second); time.Since(startTime) > time.Second*10 {

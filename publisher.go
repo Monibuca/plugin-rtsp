@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/aler9/gortsplib"
+	"go.uber.org/zap"
 	. "m7s.live/engine/v4"
 	"m7s.live/engine/v4/common"
 	. "m7s.live/engine/v4/track"
@@ -22,6 +23,11 @@ type RTSPPublisher struct {
 
 func (p *RTSPPublisher) SetTracks() error {
 	p.Tracks = make([]common.AVTrack, len(p.tracks))
+	defer func() {
+		for i, track := range p.Tracks {
+			p.Info("set track", zap.Int("trackId", i), zap.String("name", track.GetBase().Name))
+		}
+	}()
 	for trackId, track := range p.tracks {
 		md := track.MediaDescription()
 		v, ok := md.Attribute("rtpmap")
@@ -64,10 +70,10 @@ func (p *RTSPPublisher) SetTracks() error {
 				p.Tracks[trackId] = vt
 				t := track.(*gortsplib.TrackH264)
 				if len(t.SPS) > 0 {
-					vt.WriteSlice(common.NALUSlice{t.SPS})
+					vt.WriteSliceBytes(t.SPS)
 				}
 				if len(t.PPS) > 0 {
-					vt.WriteSlice(common.NALUSlice{t.PPS})
+					vt.WriteSliceBytes(t.PPS)
 				}
 			case "h265", "hevc":
 				vt := NewH265(p.Stream)
@@ -77,15 +83,15 @@ func (p *RTSPPublisher) SetTracks() error {
 				p.Tracks[trackId] = vt
 				if v, ok := fmtp["sprop-vps"]; ok {
 					vps, _ := base64.StdEncoding.DecodeString(v)
-					vt.WriteSlice(common.NALUSlice{vps})
+					vt.WriteSliceBytes(vps)
 				}
 				if v, ok := fmtp["sprop-sps"]; ok {
 					sps, _ := base64.StdEncoding.DecodeString(v)
-					vt.WriteSlice(common.NALUSlice{sps})
+					vt.WriteSliceBytes(sps)
 				}
 				if v, ok := fmtp["sprop-pps"]; ok {
 					pps, _ := base64.StdEncoding.DecodeString(v)
-					vt.WriteSlice(common.NALUSlice{pps})
+					vt.WriteSliceBytes(pps)
 				}
 			case "pcma":
 				at := NewG711(p.Stream, true)
