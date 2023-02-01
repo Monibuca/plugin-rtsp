@@ -16,35 +16,34 @@ type RTSPSubscriber struct {
 func (s *RTSPSubscriber) OnEvent(event any) {
 	switch v := event.(type) {
 	case *track.Video:
-		if s.Video.Track != nil {
+		if s.Video != nil {
 			return
 		}
 		switch v.CodecID {
 		case codec.CodecID_H264:
-			extra := v.DecoderConfiguration.Raw
 			vtrack := &gortsplib.TrackH264{
-				PayloadType: v.DecoderConfiguration.PayloadType, SPS: extra[0], PPS: extra[1],
+				PayloadType: v.PayloadType, SPS: v.ParamaterSets[0], PPS: v.ParamaterSets[1],
 			}
 			s.videoTrackId = len(s.tracks)
 			s.tracks = append(s.tracks, vtrack)
 		case codec.CodecID_H265:
 			vtrack := &gortsplib.TrackH265{
-				PayloadType: v.DecoderConfiguration.PayloadType, VPS: v.DecoderConfiguration.Raw[0], SPS: v.DecoderConfiguration.Raw[1], PPS: v.DecoderConfiguration.Raw[2],
+				PayloadType: v.PayloadType, VPS: v.ParamaterSets[0], SPS: v.ParamaterSets[1], PPS: v.ParamaterSets[2],
 			}
 			s.videoTrackId = len(s.tracks)
 			s.tracks = append(s.tracks, vtrack)
 		}
 		s.AddTrack(v)
 	case *track.Audio:
-		if s.Audio.Track != nil {
+		if s.Audio != nil {
 			return
 		}
 		switch v.CodecID {
 		case codec.CodecID_AAC:
 			var mpegConf mpeg4audio.Config
-			mpegConf.Unmarshal(v.DecoderConfiguration.Raw)
+			mpegConf.Unmarshal(v.SequenceHead[2:])
 			atrack := &gortsplib.TrackMPEG4Audio{
-				PayloadType: v.DecoderConfiguration.PayloadType, Config: &mpegConf, SizeLength: 13, IndexLength: 3, IndexDeltaLength: 3,
+				PayloadType: v.PayloadType, Config: &mpegConf, SizeLength: 13, IndexLength: 3, IndexDeltaLength: 3,
 			}
 			s.audioTrackId = len(s.tracks)
 			s.tracks = append(s.tracks, atrack)

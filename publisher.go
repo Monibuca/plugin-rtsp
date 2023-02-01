@@ -25,6 +25,10 @@ func (p *RTSPPublisher) SetTracks() error {
 	p.Tracks = make([]common.AVTrack, len(p.tracks))
 	defer func() {
 		for i, track := range p.Tracks {
+			if track == nil {
+				p.Info("unknown track", zap.String("codec", p.tracks[i].String()))
+				continue
+			}
 			p.Info("set track", zap.Int("trackId", i), zap.String("name", track.GetBase().Name))
 		}
 	}()
@@ -65,7 +69,7 @@ func (p *RTSPPublisher) SetTracks() error {
 			case "h264":
 				vt := NewH264(p.Stream)
 				if payloadType, err := strconv.Atoi(vals[0]); err == nil {
-					vt.DecoderConfiguration.PayloadType = byte(payloadType)
+					vt.PayloadType = byte(payloadType)
 				}
 				p.Tracks[trackId] = vt
 				t := track.(*gortsplib.TrackH264)
@@ -78,7 +82,7 @@ func (p *RTSPPublisher) SetTracks() error {
 			case "h265", "hevc":
 				vt := NewH265(p.Stream)
 				if payloadType, err := strconv.Atoi(vals[0]); err == nil {
-					vt.DecoderConfiguration.PayloadType = byte(payloadType)
+					vt.PayloadType = byte(payloadType)
 				}
 				p.Tracks[trackId] = vt
 				if v, ok := fmtp["sprop-vps"]; ok {
@@ -96,7 +100,7 @@ func (p *RTSPPublisher) SetTracks() error {
 			case "pcma":
 				at := NewG711(p.Stream, true)
 				if payloadType, err := strconv.Atoi(vals[0]); err == nil {
-					at.DecoderConfiguration.PayloadType = byte(payloadType)
+					at.PayloadType = byte(payloadType)
 				}
 				p.Tracks[trackId] = at
 				at.SampleRate = uint32(timeScale)
@@ -110,7 +114,7 @@ func (p *RTSPPublisher) SetTracks() error {
 			case "pcmu":
 				at := NewG711(p.Stream, false)
 				if payloadType, err := strconv.Atoi(vals[0]); err == nil {
-					at.DecoderConfiguration.PayloadType = byte(payloadType)
+					at.PayloadType = byte(payloadType)
 				}
 				p.Tracks[trackId] = at
 				at.SampleRate = uint32(timeScale)
@@ -124,13 +128,13 @@ func (p *RTSPPublisher) SetTracks() error {
 			case "mpeg4-generic":
 				at := NewAAC(p.Stream)
 				if payloadType, err := strconv.Atoi(vals[0]); err == nil {
-					at.DecoderConfiguration.PayloadType = byte(payloadType)
+					at.PayloadType = byte(payloadType)
 				}
 				p.Tracks[trackId] = at
 				if config, ok := fmtp["config"]; ok {
 					asc, _ := hex.DecodeString(config)
 					// 复用AVCC写入逻辑，解析出AAC的配置信息
-					at.WriteAVCC(0, append([]byte{0xAF, 0}, asc...))
+					at.WriteAVCCSequenceHead(asc)
 				} else {
 					RTSPPlugin.Warn("aac no config")
 				}
