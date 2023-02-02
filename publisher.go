@@ -134,7 +134,7 @@ func (p *RTSPPublisher) SetTracks() error {
 				if config, ok := fmtp["config"]; ok {
 					asc, _ := hex.DecodeString(config)
 					// 复用AVCC写入逻辑，解析出AAC的配置信息
-					at.WriteAVCCSequenceHead(asc)
+					at.WriteSequenceHead(append([]byte{0xAF, 0x00}, asc...))
 				} else {
 					RTSPPlugin.Warn("aac no config")
 				}
