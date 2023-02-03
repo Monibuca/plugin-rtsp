@@ -1,16 +1,17 @@
 package rtsp
 
 import (
-	"github.com/aler9/gortsplib"
-	"github.com/aler9/gortsplib/pkg/base"
+	"github.com/aler9/gortsplib/v2"
+	"github.com/aler9/gortsplib/v2/pkg/base"
+	"github.com/aler9/gortsplib/v2/pkg/media"
 	. "m7s.live/engine/v4"
 )
 
 type RTSPIO struct {
-	tracks       gortsplib.Tracks
-	stream       *gortsplib.ServerStream
-	audioTrackId int
-	videoTrackId int
+	tracks     media.Medias
+	stream     *gortsplib.ServerStream
+	audioTrack *media.Media
+	videoTrack *media.Media
 }
 
 func (conf *RTSPConfig) OnConnOpen(ctx *gortsplib.ServerHandlerOnConnOpenCtx) {
@@ -88,6 +89,9 @@ func (conf *RTSPConfig) OnPlay(ctx *gortsplib.ServerHandlerOnPlayCtx) (*base.Res
 	return &resp, nil
 }
 func (conf *RTSPConfig) OnRecord(ctx *gortsplib.ServerHandlerOnRecordCtx) (*base.Response, error) {
+	if p, ok := conf.Load(ctx.Session); ok {
+		ctx.Session.OnPacketRTPAny(p.(*RTSPPublisher).OnPacket)
+	}
 	return &base.Response{
 		StatusCode: base.StatusOK,
 	}, nil
@@ -96,8 +100,8 @@ func (conf *RTSPConfig) OnAnnounce(ctx *gortsplib.ServerHandlerOnAnnounceCtx) (*
 	p := &RTSPPublisher{}
 	p.SetIO(ctx.Conn.NetConn())
 	if err := RTSPPlugin.Publish(ctx.Path, p); err == nil {
-		p.tracks = ctx.Tracks
-		p.stream = gortsplib.NewServerStream(ctx.Tracks)
+		p.tracks = ctx.Medias
+		p.stream = gortsplib.NewServerStream(ctx.Medias)
 		if err = p.SetTracks(); err != nil {
 			return nil, err
 		}
@@ -111,15 +115,4 @@ func (conf *RTSPConfig) OnAnnounce(ctx *gortsplib.ServerHandlerOnAnnounceCtx) (*
 	return &base.Response{
 		StatusCode: base.StatusOK,
 	}, nil
-}
-
-func (conf *RTSPConfig) OnPacketRTP(ctx *gortsplib.ServerHandlerOnPacketRTPCtx) {
-	if p, ok := conf.Load(ctx.Session); ok {
-		switch v := p.(type) {
-		case *RTSPPublisher:
-			if v.Tracks[ctx.TrackID] != nil {
-				v.Tracks[ctx.TrackID].WriteRTPPack(ctx.Packet)
-			}
-		}
-	}
 }

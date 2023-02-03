@@ -1,8 +1,10 @@
 package rtsp
 
 import (
-	"github.com/aler9/gortsplib"
-	"github.com/aler9/gortsplib/pkg/mpeg4audio"
+	"github.com/aler9/gortsplib/v2"
+	"github.com/aler9/gortsplib/v2/pkg/codecs/mpeg4audio"
+	"github.com/aler9/gortsplib/v2/pkg/format"
+	"github.com/aler9/gortsplib/v2/pkg/media"
 	. "m7s.live/engine/v4"
 	"m7s.live/engine/v4/codec"
 	"m7s.live/engine/v4/track"
@@ -21,17 +23,29 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 		}
 		switch v.CodecID {
 		case codec.CodecID_H264:
-			vtrack := &gortsplib.TrackH264{
-				PayloadType: v.PayloadType, SPS: v.ParamaterSets[0], PPS: v.ParamaterSets[1],
+			video := &media.Media{
+				Type: media.TypeVideo,
+				Formats: []format.Format{&format.H264{
+					PacketizationMode: 1,
+					PayloadTyp:        v.PayloadType,
+					SPS:               v.ParamaterSets[0],
+					PPS:               v.ParamaterSets[1],
+				}},
 			}
-			s.videoTrackId = len(s.tracks)
-			s.tracks = append(s.tracks, vtrack)
+			s.videoTrack = video
+			s.tracks = append(s.tracks, video)
 		case codec.CodecID_H265:
-			vtrack := &gortsplib.TrackH265{
-				PayloadType: v.PayloadType, VPS: v.ParamaterSets[0], SPS: v.ParamaterSets[1], PPS: v.ParamaterSets[2],
+			video := &media.Media{
+				Type: media.TypeVideo,
+				Formats: []format.Format{&format.H265{
+					PayloadTyp: v.PayloadType,
+					VPS:        v.ParamaterSets[0],
+					SPS:        v.ParamaterSets[1],
+					PPS:        v.ParamaterSets[2],
+				}},
 			}
-			s.videoTrackId = len(s.tracks)
-			s.tracks = append(s.tracks, vtrack)
+			s.videoTrack = video
+			s.tracks = append(s.tracks, video)
 		}
 		s.AddTrack(v)
 	case *track.Audio:
@@ -40,27 +54,46 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 		}
 		switch v.CodecID {
 		case codec.CodecID_AAC:
-			var mpegConf mpeg4audio.Config
-			mpegConf.Unmarshal(v.SequenceHead[2:])
-			atrack := &gortsplib.TrackMPEG4Audio{
-				PayloadType: v.PayloadType, Config: &mpegConf, SizeLength: 13, IndexLength: 3, IndexDeltaLength: 3,
+			audio := &media.Media{
+				Type: media.TypeAudio,
+				Formats: []format.Format{&format.MPEG4Audio{
+					PayloadTyp: v.PayloadType,
+					Config: &mpeg4audio.Config{
+						Type:         mpeg4audio.ObjectTypeAACLC,
+						SampleRate:   int(v.SampleRate),
+						ChannelCount: int(v.Channels),
+					},
+					SizeLength:       13,
+					IndexLength:      3,
+					IndexDeltaLength: 3,
+				}},
 			}
-			s.audioTrackId = len(s.tracks)
-			s.tracks = append(s.tracks, atrack)
+			s.audioTrack = audio
+			s.tracks = append(s.tracks, audio)
 		case codec.CodecID_PCMA:
-			s.audioTrackId = len(s.tracks)
-			s.tracks = append(s.tracks, &gortsplib.TrackPCMA{})
+			audio := &media.Media{
+				Type:    media.TypeAudio,
+				Formats: []format.Format{&format.G711{}},
+			}
+			s.audioTrack = audio
+			s.tracks = append(s.tracks, audio)
 		case codec.CodecID_PCMU:
-			s.audioTrackId = len(s.tracks)
-			s.tracks = append(s.tracks, &gortsplib.TrackPCMU{})
+			audio := &media.Media{
+				Type: media.TypeAudio,
+				Formats: []format.Format{&format.G711{
+					MULaw: true,
+				}},
+			}
+			s.audioTrack = audio
+			s.tracks = append(s.tracks, audio)
 		}
 		s.AddTrack(v)
 	case ISubscriber:
 		s.stream = gortsplib.NewServerStream(s.tracks)
 	case VideoRTP:
-		s.stream.WritePacketRTP(s.videoTrackId, &v.Packet)
+		s.stream.WritePacketRTP(s.videoTrack, &v.Packet)
 	case AudioRTP:
-		s.stream.WritePacketRTP(s.audioTrackId, &v.Packet)
+		s.stream.WritePacketRTP(s.audioTrack, &v.Packet)
 	default:
 		s.Subscriber.OnEvent(event)
 	}

@@ -1,8 +1,8 @@
 package rtsp
 
 import (
-	"github.com/aler9/gortsplib"
-	"github.com/aler9/gortsplib/pkg/url"
+	"github.com/aler9/gortsplib/v2"
+	"github.com/aler9/gortsplib/v2/pkg/url"
 	"go.uber.org/zap"
 	"m7s.live/engine/v4"
 )
@@ -28,14 +28,15 @@ func (p *RTSPPuller) Connect() error {
 		}
 	}
 	p.Client = &gortsplib.Client{
-		OnPacketRTP: func(ctx *gortsplib.ClientOnPacketRTPCtx) {
-			if p.RTSPPublisher.Tracks[ctx.TrackID] != nil {
-				p.RTSPPublisher.Tracks[ctx.TrackID].WriteRTPPack(ctx.Packet)
-			}
-		},
+		// OnPacketRTP: func(ctx *gortsplib.ClientOnPacketRTPCtx) {
+		// 	if p.RTSPPublisher.Tracks[ctx.TrackID] != nil {
+		// 		p.RTSPPublisher.Tracks[ctx.TrackID].WriteRTPPack(ctx.Packet)
+		// 	}
+		// },
 		ReadBufferCount: rtspConfig.ReadBufferSize,
 		Transport:       &p.Transport,
 	}
+
 	// parse URL
 	u, err := url.Parse(p.RemoteURL)
 	if err != nil {
@@ -63,9 +64,19 @@ func (p *RTSPPuller) Pull() (err error) {
 		return
 	}
 	p.tracks = tracks
-	p.SetTracks()
-	if err = p.SetupAndPlay(tracks, baseURL); err != nil {
+	err = p.SetTracks()
+	if err != nil {
+		p.Error("SetTracks", zap.Error(err))
+		return
+	}
+	if err = p.SetupAll(tracks, baseURL); err != nil {
 		p.Error("SetupAndPlay", zap.Error(err))
+		return
+	}
+	p.OnPacketRTPAny(p.OnPacket)
+	_, err = p.Play(nil)
+	if err != nil {
+		p.Error("Play", zap.Error(err))
 		return
 	}
 	return p.Wait()
@@ -81,9 +92,9 @@ type RTSPPusher struct {
 func (p *RTSPPusher) OnEvent(event any) {
 	switch v := event.(type) {
 	case engine.VideoRTP:
-		p.Client.WritePacketRTP(p.videoTrackId, &v.Packet)
+		p.Client.WritePacketRTP(p.videoTrack, &v.Packet)
 	case engine.AudioRTP:
-		p.Client.WritePacketRTP(p.audioTrackId, &v.Packet)
+		p.Client.WritePacketRTP(p.audioTrack, &v.Packet)
 	default:
 		p.RTSPSubscriber.OnEvent(event)
 	}
@@ -127,13 +138,12 @@ func (p *RTSPPusher) Push() (err error) {
 		p.Error("Announce", zap.Error(err))
 		return
 	}
-	for _, track := range p.tracks {
-		_, err = p.Setup(track, u, 0, 0)
-		if err != nil {
-			p.Error("Setup", zap.Error(err))
-			return
-		}
+	err = p.SetupAll(p.tracks, u)
+	if err != nil {
+		p.Error("Setup", zap.Error(err))
+		return
 	}
+
 	if _, err = p.Record(); err != nil {
 		p.Error("Record", zap.Error(err))
 		return
