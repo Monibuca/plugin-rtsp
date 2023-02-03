@@ -26,7 +26,7 @@ func (p *RTSPPublisher) SetTracks() error {
 	defer func() {
 		for i, track := range p.Tracks {
 			if track == nil {
-				p.Info("unknown track", zap.String("codec", p.tracks[i].String()))
+				p.Info("unknown track", zap.String("codec", p.Tracks[i].String()))
 				continue
 			}
 			p.Info("set track", zap.Int("trackId", i), zap.String("name", track.GetBase().Name))
