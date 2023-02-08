@@ -49,7 +49,7 @@ func (p *RTSPPublisher) SetTracks() error {
 					vt.WriteSliceBytes(f.PPS)
 				}
 			case *format.MPEG4Audio:
-				at := NewAAC(p.Stream, f.PayloadType())
+				at := NewAAC(p.Stream, f.PayloadType(), uint32(f.ClockRate()))
 				p.Tracks[track] = at
 				at.SizeLength = f.SizeLength
 				if f.Config.Type == mpeg4audio.ObjectTypeAACLC {
