@@ -49,13 +49,12 @@ func (p *RTSPPublisher) SetTracks() error {
 					vt.WriteSliceBytes(f.PPS)
 				}
 			case *format.MPEG4Audio:
-				at := NewAAC(p.Stream, f.PayloadType(), uint32(f.ClockRate()))
+				at := NewAAC(p.Stream, f.PayloadType(), uint32(f.Config.SampleRate))
 				p.Tracks[track] = at
 				at.SizeLength = f.SizeLength
 				if f.Config.Type == mpeg4audio.ObjectTypeAACLC {
 					at.Mode = 1
 				}
-				at.SampleRate = uint32(f.Config.SampleRate)
 				at.Channels = uint8(f.Config.ChannelCount)
 				asc, _ := f.Config.Marshal()
 				// 复用AVCC写入逻辑，解析出AAC的配置信息
