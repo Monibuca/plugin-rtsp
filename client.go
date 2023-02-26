@@ -92,9 +92,9 @@ type RTSPPusher struct {
 func (p *RTSPPusher) OnEvent(event any) {
 	switch v := event.(type) {
 	case engine.VideoRTP:
-		p.Client.WritePacketRTP(p.videoTrack, &v.Packet)
+		p.Client.WritePacketRTP(p.videoTrack, v.Packet)
 	case engine.AudioRTP:
-		p.Client.WritePacketRTP(p.audioTrack, &v.Packet)
+		p.Client.WritePacketRTP(p.audioTrack, v.Packet)
 	default:
 		p.RTSPSubscriber.OnEvent(event)
 	}

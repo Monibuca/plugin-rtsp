@@ -24,7 +24,7 @@ rtsp://localhost/live/test
 例如通过ffmpeg向m7s进行推流
 
 ```bash
-ffmpeg -i [视频源] -c:v h264 -f rtsp rtsp://localhost/live/test
+ffmpeg -i [视频源] -c:v h264 -c:a aac -f rtsp rtsp://localhost/live/test
 ```
 
 会在m7s内部形成一个名为live/test的流

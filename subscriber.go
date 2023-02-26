@@ -91,9 +91,9 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 	case ISubscriber:
 		s.stream = gortsplib.NewServerStream(s.tracks)
 	case VideoRTP:
-		s.stream.WritePacketRTP(s.videoTrack, &v.Packet)
+		s.stream.WritePacketRTP(s.videoTrack, v.Packet)
 	case AudioRTP:
-		s.stream.WritePacketRTP(s.audioTrack, &v.Packet)
+		s.stream.WritePacketRTP(s.audioTrack, v.Packet)
 	default:
 		s.Subscriber.OnEvent(event)
 	}
