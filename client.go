@@ -127,7 +127,6 @@ func (p *RTSPPusher) Connect() error {
 func (p *RTSPPusher) Push() (err error) {
 	var u *url.URL
 	u, err = url.Parse(p.RemoteURL)
-	defer p.Stop()
 	// startTime := time.Now()
 	// for len(p.tracks) < 2 {
 	// 	if time.Sleep(time.Second); time.Since(startTime) > time.Second*10 {

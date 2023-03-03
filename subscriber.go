@@ -63,9 +63,9 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 						SampleRate:   int(v.SampleRate),
 						ChannelCount: int(v.Channels),
 					},
-					SizeLength:       13,
-					IndexLength:      3,
-					IndexDeltaLength: 3,
+					SizeLength:       v.SizeLength,
+					IndexLength:      v.IndexLength,
+					IndexDeltaLength: v.IndexDeltaLength,
 				}},
 			}
 			s.audioTrack = audio

@@ -51,6 +51,8 @@ func (p *RTSPPublisher) SetTracks() error {
 			case *format.MPEG4Audio:
 				at := NewAAC(p.Stream, f.PayloadType(), uint32(f.Config.SampleRate))
 				p.Tracks[track] = at
+				at.IndexDeltaLength = f.IndexDeltaLength
+				at.IndexLength = f.IndexLength
 				at.SizeLength = f.SizeLength
 				if f.Config.Type == mpeg4audio.ObjectTypeAACLC {
 					at.Mode = 1
