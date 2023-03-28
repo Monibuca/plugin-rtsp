@@ -28,8 +28,12 @@ func (p *RTSPPublisher) SetTracks() error {
 		for _, forma := range track.Formats {
 			switch f := forma.(type) {
 			case *format.H264:
-				vt := NewH264(p.Stream, f.PayloadType())
-				p.Tracks[track] = vt
+				vt := p.VideoTrack
+				if vt == nil {
+					vt = NewH264(p.Stream, f.PayloadType())
+					p.VideoTrack = vt
+				}
+				p.Tracks[track] = p.VideoTrack
 				if len(f.SPS) > 0 {
 					vt.WriteSliceBytes(f.SPS)
 				}
@@ -37,8 +41,12 @@ func (p *RTSPPublisher) SetTracks() error {
 					vt.WriteSliceBytes(f.PPS)
 				}
 			case *format.H265:
-				vt := NewH265(p.Stream, f.PayloadType())
-				p.Tracks[track] = vt
+				vt := p.VideoTrack
+				if vt == nil {
+					vt = NewH265(p.Stream, f.PayloadType())
+					p.VideoTrack = vt
+				}
+				p.Tracks[track] = p.VideoTrack
 				if len(f.VPS) > 0 {
 					vt.WriteSliceBytes(f.VPS)
 				}
@@ -49,24 +57,38 @@ func (p *RTSPPublisher) SetTracks() error {
 					vt.WriteSliceBytes(f.PPS)
 				}
 			case *format.MPEG4Audio:
-				at := NewAAC(p.Stream, f.PayloadType(), uint32(f.Config.SampleRate))
-				p.Tracks[track] = at
-				at.IndexDeltaLength = f.IndexDeltaLength
-				at.IndexLength = f.IndexLength
-				at.SizeLength = f.SizeLength
-				if f.Config.Type == mpeg4audio.ObjectTypeAACLC {
-					at.Mode = 1
+				at := p.AudioTrack
+				if at == nil {
+					at := NewAAC(p.Stream, f.PayloadType(), uint32(f.Config.SampleRate))
+					at.IndexDeltaLength = f.IndexDeltaLength
+					at.IndexLength = f.IndexLength
+					at.SizeLength = f.SizeLength
+					if f.Config.Type == mpeg4audio.ObjectTypeAACLC {
+						at.Mode = 1
+					}
+					at.Channels = uint8(f.Config.ChannelCount)
+					asc, _ := f.Config.Marshal()
+					// 复用AVCC写入逻辑，解析出AAC的配置信息
+					at.WriteSequenceHead(append([]byte{0xAF, 0x00}, asc...))
+					p.AudioTrack = at
 				}
-				at.Channels = uint8(f.Config.ChannelCount)
-				asc, _ := f.Config.Marshal()
-				// 复用AVCC写入逻辑，解析出AAC的配置信息
-				at.WriteSequenceHead(append([]byte{0xAF, 0x00}, asc...))
+				p.Tracks[track] = p.AudioTrack
 			case *format.G711:
-				at := NewG711(p.Stream, !f.MULaw, f.PayloadType(), uint32(f.ClockRate()))
-				p.Tracks[track] = at
-				at.AVCCHead = []byte{(byte(at.CodecID) << 4) | (1 << 1)}
+				at := p.AudioTrack
+				if at == nil {
+					at := NewG711(p.Stream, !f.MULaw, f.PayloadType(), uint32(f.ClockRate()))
+					at.AVCCHead = []byte{(byte(at.CodecID) << 4) | (1 << 1)}
+					p.AudioTrack = at
+				}
+				p.Tracks[track] = p.AudioTrack
 			}
 		}
+	}
+	if p.VideoTrack == nil {
+		p.Config.PubVideo = false
+	}
+	if p.AudioTrack == nil {
+		p.Config.PubAudio = false
 	}
 	return nil
 }

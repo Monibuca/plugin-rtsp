@@ -49,7 +49,7 @@ func (conf *RTSPConfig) OnEvent(event any) {
 		}
 	case SEpublish:
 		for streamPath, url := range conf.PushList {
-			if streamPath == v.Stream.Path {
+			if streamPath == v.Target.Path {
 				if err := RTSPPlugin.Push(streamPath, url, new(RTSPPusher), false); err != nil {
 					RTSPPlugin.Error("push", zap.String("streamPath", streamPath), zap.String("url", url), zap.Error(err))
 				}
