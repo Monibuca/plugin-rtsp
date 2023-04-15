@@ -10,23 +10,11 @@ import (
 type RTSPPuller struct {
 	RTSPPublisher
 	engine.Puller
-	*gortsplib.Client `json:"-"`
+	*gortsplib.Client `json:"-" yaml:"-"`
 	gortsplib.Transport
 }
 
 func (p *RTSPPuller) Connect() error {
-	switch rtspConfig.PullProtocol {
-	case "tcp", "TCP":
-		p.Transport = gortsplib.TransportTCP
-	case "udp", "UDP":
-		p.Transport = gortsplib.TransportUDP
-	default:
-		if p.Transport == gortsplib.TransportTCP {
-			p.Transport = gortsplib.TransportUDP
-		} else {
-			p.Transport = gortsplib.TransportTCP
-		}
-	}
 	p.Client = &gortsplib.Client{
 		// OnPacketRTP: func(ctx *gortsplib.ClientOnPacketRTPCtx) {
 		// 	if p.RTSPPublisher.Tracks[ctx.TrackID] != nil {
@@ -34,9 +22,16 @@ func (p *RTSPPuller) Connect() error {
 		// 	}
 		// },
 		ReadBufferCount: rtspConfig.ReadBufferSize,
-		Transport:       &p.Transport,
 	}
 
+	switch rtspConfig.PullProtocol {
+	case "tcp", "TCP":
+		p.Transport = gortsplib.TransportTCP
+		p.Client.Transport = &p.Transport
+	case "udp", "UDP":
+		p.Transport = gortsplib.TransportUDP
+		p.Client.Transport = &p.Transport
+	}
 	// parse URL
 	u, err := url.Parse(p.RemoteURL)
 	if err != nil {
@@ -100,14 +95,8 @@ func (p *RTSPPusher) OnEvent(event any) {
 	}
 }
 func (p *RTSPPusher) Connect() error {
-	if p.Transport == gortsplib.TransportTCP {
-		p.Transport = gortsplib.TransportUDP
-	} else {
-		p.Transport = gortsplib.TransportTCP
-	}
 	p.Client = &gortsplib.Client{
 		ReadBufferCount: rtspConfig.ReadBufferSize,
-		Transport:       &p.Transport,
 	}
 	// parse URL
 	u, err := url.Parse(p.RemoteURL)

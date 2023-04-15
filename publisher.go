@@ -13,7 +13,7 @@ import (
 
 type RTSPPublisher struct {
 	Publisher
-	Tracks map[*media.Media]common.AVTrack `json:"-"`
+	Tracks map[*media.Media]common.AVTrack `json:"-" yaml:"-"`
 	RTSPIO
 }
 
@@ -86,9 +86,11 @@ func (p *RTSPPublisher) SetTracks() error {
 	}
 	if p.VideoTrack == nil {
 		p.Config.PubVideo = false
+		p.Info("no video track")
 	}
 	if p.AudioTrack == nil {
 		p.Config.PubAudio = false
+		p.Info("no audio track")
 	}
 	return nil
 }
