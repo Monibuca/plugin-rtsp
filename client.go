@@ -15,14 +15,16 @@ type RTSPPuller struct {
 }
 
 func (p *RTSPPuller) Connect() error {
-	p.Client = &gortsplib.Client{
-		// OnPacketRTP: func(ctx *gortsplib.ClientOnPacketRTPCtx) {
-		// 	if p.RTSPPublisher.Tracks[ctx.TrackID] != nil {
-		// 		p.RTSPPublisher.Tracks[ctx.TrackID].WriteRTPPack(ctx.Packet)
-		// 	}
-		// },
-		ReadBufferCount: rtspConfig.ReadBufferSize,
+	if p.Client == nil {
+		p.Client = &gortsplib.Client{
+			// OnPacketRTP: func(ctx *gortsplib.ClientOnPacketRTPCtx) {
+			// 	if p.RTSPPublisher.Tracks[ctx.TrackID] != nil {
+			// 		p.RTSPPublisher.Tracks[ctx.TrackID].WriteRTPPack(ctx.Packet)
+			// 	}
+			// },
+		}
 	}
+	p.Client.ReadBufferCount = rtspConfig.ReadBufferSize
 
 	switch rtspConfig.PullProtocol {
 	case "tcp", "TCP":
