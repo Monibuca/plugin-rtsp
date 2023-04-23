@@ -1,4 +1,4 @@
-_[English](https://github.com/Monibuca/plugin-rtsp/README.en.md) | 简体中文_
+_[English](https://github.com/Monibuca/plugin-rtsp/blob/v4/README.en.md) | 简体中文_
 # RTSP插件
 rtsp插件提供rtsp协议的推拉流能力，以及向远程服务器推拉rtsp协议的能力。
 ## 插件地址

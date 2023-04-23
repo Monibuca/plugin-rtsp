@@ -1,4 +1,4 @@
-_[简体中文](https://github.com/Monibuca/plugin-rtsp/README.md) | English_
+_[简体中文](https://github.com/Monibuca/plugin-rtsp) | English_
 # RTSP Plugin
 
 The RTSP plugin provides the ability to push and pull the RTSP protocol and also to push and pull the RTSP protocol to remote servers.
