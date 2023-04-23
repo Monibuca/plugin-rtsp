@@ -1,14 +1,15 @@
 package rtsp
 
 import (
-	"github.com/aler9/gortsplib/v2/pkg/codecs/mpeg4audio"
-	"github.com/aler9/gortsplib/v2/pkg/format"
-	"github.com/aler9/gortsplib/v2/pkg/media"
+	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
+	"github.com/bluenviron/gortsplib/v3/pkg/formats"
+	"github.com/bluenviron/gortsplib/v3/pkg/media"
 	"github.com/pion/rtp"
 	"go.uber.org/zap"
 	. "m7s.live/engine/v4"
 	"m7s.live/engine/v4/common"
 	. "m7s.live/engine/v4/track"
+	"m7s.live/engine/v4/util"
 )
 
 type RTSPPublisher struct {
@@ -27,10 +28,10 @@ func (p *RTSPPublisher) SetTracks() error {
 	for _, track := range p.tracks {
 		for _, forma := range track.Formats {
 			switch f := forma.(type) {
-			case *format.H264:
+			case *formats.H264:
 				vt := p.VideoTrack
 				if vt == nil {
-					vt = NewH264(p.Stream, f.PayloadType())
+					vt = NewH264(p.Stream, f.PayloadType(), make(util.BytesPool, 17))
 					p.VideoTrack = vt
 				}
 				p.Tracks[track] = p.VideoTrack
@@ -40,10 +41,10 @@ func (p *RTSPPublisher) SetTracks() error {
 				if len(f.PPS) > 0 {
 					vt.WriteSliceBytes(f.PPS)
 				}
-			case *format.H265:
+			case *formats.H265:
 				vt := p.VideoTrack
 				if vt == nil {
-					vt = NewH265(p.Stream, f.PayloadType())
+					vt = NewH265(p.Stream, f.PayloadType(), make(util.BytesPool, 17))
 					p.VideoTrack = vt
 				}
 				p.Tracks[track] = p.VideoTrack
@@ -56,10 +57,10 @@ func (p *RTSPPublisher) SetTracks() error {
 				if len(f.PPS) > 0 {
 					vt.WriteSliceBytes(f.PPS)
 				}
-			case *format.MPEG4Audio:
+			case *formats.MPEG4Audio:
 				at := p.AudioTrack
 				if at == nil {
-					at := NewAAC(p.Stream, f.PayloadType(), uint32(f.Config.SampleRate))
+					at := NewAAC(p.Stream, f.PayloadType(), uint32(f.Config.SampleRate), make(util.BytesPool, 17))
 					at.IndexDeltaLength = f.IndexDeltaLength
 					at.IndexLength = f.IndexLength
 					at.SizeLength = f.SizeLength
@@ -73,10 +74,10 @@ func (p *RTSPPublisher) SetTracks() error {
 					p.AudioTrack = at
 				}
 				p.Tracks[track] = p.AudioTrack
-			case *format.G711:
+			case *formats.G711:
 				at := p.AudioTrack
 				if at == nil {
-					at := NewG711(p.Stream, !f.MULaw, f.PayloadType(), uint32(f.ClockRate()))
+					at := NewG711(p.Stream, !f.MULaw, f.PayloadType(), uint32(f.ClockRate()), make(util.BytesPool, 17))
 					at.AVCCHead = []byte{(byte(at.CodecID) << 4) | (1 << 1)}
 					p.AudioTrack = at
 				}
@@ -95,7 +96,7 @@ func (p *RTSPPublisher) SetTracks() error {
 	return nil
 }
 
-func (p *RTSPPublisher) OnPacket(m *media.Media, f format.Format, pack *rtp.Packet) {
+func (p *RTSPPublisher) OnPacket(m *media.Media, f formats.Format, pack *rtp.Packet) {
 	if t, ok := p.Tracks[m]; ok {
 		t.WriteRTPPack(pack)
 	}

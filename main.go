@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aler9/gortsplib/v2"
+	"github.com/bluenviron/gortsplib/v3"
 	"go.uber.org/zap"
 	. "m7s.live/engine/v4"
 	"m7s.live/engine/v4/config"
@@ -18,11 +18,12 @@ type RTSPConfig struct {
 	config.Subscribe
 	config.Pull
 	config.Push
-	ListenAddr     string
-	UDPAddr        string
-	RTCPAddr       string
-	ReadBufferSize int
-	PullProtocol   string //tcp、udp、 auto（default）
+	ListenAddr       string `default:":554"`
+	UDPAddr          string `default:":8000"`
+	RTCPAddr         string `default:":8001"`
+	ReadBufferCount  int    `default:"2048"`
+	WriteBufferCount int    `default:"2048"`
+	PullProtocol     string //tcp、udp、 auto（default）
 	sync.Map
 }
 
@@ -37,6 +38,8 @@ func (conf *RTSPConfig) OnEvent(event any) {
 			MulticastIPRange:  "224.1.0.0/16",
 			MulticastRTPPort:  8002,
 			MulticastRTCPPort: 8003,
+			ReadBufferCount:   conf.ReadBufferCount,
+			WriteBufferCount:  conf.WriteBufferCount,
 		}
 		if err := s.Start(); err != nil {
 			RTSPPlugin.Error("server start", zap.Error(err))
@@ -67,12 +70,7 @@ func (conf *RTSPConfig) OnEvent(event any) {
 	}
 }
 
-var rtspConfig = &RTSPConfig{
-	ListenAddr:     ":554",
-	UDPAddr:        ":8000",
-	RTCPAddr:       ":8001",
-	ReadBufferSize: 2048,
-}
+var rtspConfig = &RTSPConfig{}
 var RTSPPlugin = InstallPlugin(rtspConfig)
 
 func filterStreams() (ss []*Stream) {

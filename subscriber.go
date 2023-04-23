@@ -1,10 +1,10 @@
 package rtsp
 
 import (
-	"github.com/aler9/gortsplib/v2"
-	"github.com/aler9/gortsplib/v2/pkg/codecs/mpeg4audio"
-	"github.com/aler9/gortsplib/v2/pkg/format"
-	"github.com/aler9/gortsplib/v2/pkg/media"
+	"github.com/bluenviron/gortsplib/v3"
+	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
+	"github.com/bluenviron/gortsplib/v3/pkg/formats"
+	"github.com/bluenviron/gortsplib/v3/pkg/media"
 	. "m7s.live/engine/v4"
 	"m7s.live/engine/v4/codec"
 	"m7s.live/engine/v4/track"
@@ -25,7 +25,7 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 		case codec.CodecID_H264:
 			video := &media.Media{
 				Type: media.TypeVideo,
-				Formats: []format.Format{&format.H264{
+				Formats: []formats.Format{&formats.H264{
 					PacketizationMode: 1,
 					PayloadTyp:        v.PayloadType,
 					SPS:               v.ParamaterSets[0],
@@ -37,7 +37,7 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 		case codec.CodecID_H265:
 			video := &media.Media{
 				Type: media.TypeVideo,
-				Formats: []format.Format{&format.H265{
+				Formats: []formats.Format{&formats.H265{
 					PayloadTyp: v.PayloadType,
 					VPS:        v.ParamaterSets[0],
 					SPS:        v.ParamaterSets[1],
@@ -56,7 +56,7 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 		case codec.CodecID_AAC:
 			audio := &media.Media{
 				Type: media.TypeAudio,
-				Formats: []format.Format{&format.MPEG4Audio{
+				Formats: []formats.Format{&formats.MPEG4Audio{
 					PayloadTyp: v.PayloadType,
 					Config: &mpeg4audio.Config{
 						Type:         mpeg4audio.ObjectTypeAACLC,
@@ -73,14 +73,14 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 		case codec.CodecID_PCMA:
 			audio := &media.Media{
 				Type:    media.TypeAudio,
-				Formats: []format.Format{&format.G711{}},
+				Formats: []formats.Format{&formats.G711{}},
 			}
 			s.audioTrack = audio
 			s.tracks = append(s.tracks, audio)
 		case codec.CodecID_PCMU:
 			audio := &media.Media{
 				Type: media.TypeAudio,
-				Formats: []format.Format{&format.G711{
+				Formats: []formats.Format{&formats.G711{
 					MULaw: true,
 				}},
 			}

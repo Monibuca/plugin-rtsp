@@ -1,27 +1,30 @@
 package rtsp
 
 import (
-	"github.com/aler9/gortsplib/v2"
-	"github.com/aler9/gortsplib/v2/pkg/url"
+	"context"
+	"net"
+
+	"github.com/bluenviron/gortsplib/v3"
+	"github.com/bluenviron/gortsplib/v3/pkg/url"
 	"go.uber.org/zap"
 	"m7s.live/engine/v4"
 )
 
+type RTSPClient struct {
+	*gortsplib.Client `json:"-" yaml:"-"`
+	gortsplib.Transport
+	DialContext func(ctx context.Context, network, address string) (net.Conn, error) `json:"-" yaml:"-"`
+}
 type RTSPPuller struct {
 	RTSPPublisher
 	engine.Puller
-	*gortsplib.Client `json:"-" yaml:"-"`
-	gortsplib.Transport
+	RTSPClient
 }
 
 func (p *RTSPPuller) Connect() error {
 	p.Client = &gortsplib.Client{
-		// OnPacketRTP: func(ctx *gortsplib.ClientOnPacketRTPCtx) {
-		// 	if p.RTSPPublisher.Tracks[ctx.TrackID] != nil {
-		// 		p.RTSPPublisher.Tracks[ctx.TrackID].WriteRTPPack(ctx.Packet)
-		// 	}
-		// },
-		ReadBufferCount: rtspConfig.ReadBufferSize,
+		DialContext:     p.DialContext,
+		ReadBufferCount: rtspConfig.ReadBufferCount,
 	}
 
 	switch rtspConfig.PullProtocol {
@@ -80,8 +83,7 @@ func (p *RTSPPuller) Pull() (err error) {
 type RTSPPusher struct {
 	RTSPSubscriber
 	engine.Pusher
-	*gortsplib.Client
-	gortsplib.Transport
+	RTSPClient
 }
 
 func (p *RTSPPusher) OnEvent(event any) {
@@ -96,7 +98,8 @@ func (p *RTSPPusher) OnEvent(event any) {
 }
 func (p *RTSPPusher) Connect() error {
 	p.Client = &gortsplib.Client{
-		ReadBufferCount: rtspConfig.ReadBufferSize,
+		DialContext:      p.DialContext,
+		WriteBufferCount: rtspConfig.WriteBufferCount,
 	}
 	// parse URL
 	u, err := url.Parse(p.RemoteURL)

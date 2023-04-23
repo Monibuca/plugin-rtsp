@@ -1,3 +1,4 @@
+_[English](https://github.com/Monibuca/plugin-rtsp/README.en.md) | 简体中文_
 # RTSP插件
 rtsp插件提供rtsp协议的推拉流能力，以及向远程服务器推拉rtsp协议的能力。
 ## 插件地址
@@ -35,42 +36,20 @@ ffmpeg -i [视频源] -c:v h264 -c:a aac -f rtsp rtsp://localhost/live/test
 ffplay rtsp://localhost/live/test
 ```
 
-
 ## 配置
 
 ```yaml
 rtsp:
-    publish:
-        pubaudio: true # 是否发布音频流
-        pubvideo: true # 是否发布视频流
-        kickexist: false # 剔出已经存在的发布者，用于顶替原有发布者
-        publishtimeout: 10s # 发布流默认过期时间，超过该时间发布者没有恢复流将被删除
-        delayclosetimeout: 0 # 自动关闭触发后延迟的时间(期间内如果有新的订阅则取消触发关闭)，0为关闭该功能，保持连接。
-        waitclosetimeout: 0 # 发布者断开后等待时间，超过该时间发布者没有恢复流将被删除，0为关闭该功能，由订阅者决定是否删除
-        buffertime: 0 # 缓存时间，用于时光回溯，0为关闭缓存
-    subscribe:
-        subaudio: true # 是否订阅音频流
-        subvideo: true # 是否订阅视频流
-        subaudioargname: ats # 订阅音频轨道参数名
-        subvideoargname: vts # 订阅视频轨道参数名
-        subdataargname: dts # 订阅数据轨道参数名
-        subaudiotracks: [] # 订阅音频轨道名称列表
-        subvideotracks: [] # 订阅视频轨道名称列表
-        submode: 0 # 订阅模式，0为跳帧追赶模式，1为不追赶（多用于录制），2为时光回溯模式
-        iframeonly: false # 只订阅关键帧
-        waittimeout: 10s # 等待发布者的超时时间，用于订阅尚未发布的流
-    pull:
-        repull: 0
-        pullonstart: {}
-        pullonsub: {}
-    push:
-        repush: 0
-        pushlist: {}
+    publish: # 参考全局配置格式
+    subscribe: # 参考全局配置格式
+    pull: # 格式参考文档 https://m7s.live/guide/config.html#%E6%8F%92%E4%BB%B6%E9%85%8D%E7%BD%AE
+    push: # 格式参考文档 https://m7s.live/guide/config.html#%E6%8F%92%E4%BB%B6%E9%85%8D%E7%BD%AE
     listenaddr: :554
     udpaddr: :8000
     rtcpaddr: :8001
-    readbuffersize: 2048
-    pullprotocol: 'auto'
+    readbuffercount: 2048 # 读取缓存队列大小
+    writebuffercount: 2048 # 写出缓存队列大小
+    pullprotocol: 'auto' # auto, tcp, udp
 ```
 :::tip 配置覆盖
 publish
@@ -82,7 +61,7 @@ subscribe
 ### `rtsp/api/list`
 获取所有rtsp流
 
-### `rtsp/api/pull?target=[RTSP地址]&streamPath=[流标识]`
+### `rtsp/api/pull?target=[RTSP地址]&streamPath=[流标识]&save=[0|1]`
 从远程拉取rtsp到m7s中
 
 ### `rtsp/api/push?target=[RTSP地址]&streamPath=[流标识]`
