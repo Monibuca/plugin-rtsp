@@ -1,15 +1,14 @@
 package rtsp
 
 import (
-	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 	"github.com/bluenviron/gortsplib/v3/pkg/formats"
 	"github.com/bluenviron/gortsplib/v3/pkg/media"
+	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 	"github.com/pion/rtp"
 	"go.uber.org/zap"
 	. "m7s.live/engine/v4"
 	"m7s.live/engine/v4/common"
 	. "m7s.live/engine/v4/track"
-	"m7s.live/engine/v4/util"
 )
 
 type RTSPPublisher struct {
@@ -31,7 +30,7 @@ func (p *RTSPPublisher) SetTracks() error {
 			case *formats.H264:
 				vt := p.VideoTrack
 				if vt == nil {
-					vt = NewH264(p.Stream, f.PayloadType(), make(util.BytesPool, 17))
+					vt = NewH264(p.Stream, f.PayloadType())
 					p.VideoTrack = vt
 				}
 				p.Tracks[track] = p.VideoTrack
@@ -44,7 +43,7 @@ func (p *RTSPPublisher) SetTracks() error {
 			case *formats.H265:
 				vt := p.VideoTrack
 				if vt == nil {
-					vt = NewH265(p.Stream, f.PayloadType(), make(util.BytesPool, 17))
+					vt = NewH265(p.Stream, f.PayloadType())
 					p.VideoTrack = vt
 				}
 				p.Tracks[track] = p.VideoTrack
@@ -60,7 +59,7 @@ func (p *RTSPPublisher) SetTracks() error {
 			case *formats.MPEG4Audio:
 				at := p.AudioTrack
 				if at == nil {
-					at := NewAAC(p.Stream, f.PayloadType(), uint32(f.Config.SampleRate), make(util.BytesPool, 17))
+					at := NewAAC(p.Stream, f.PayloadType(), uint32(f.Config.SampleRate))
 					at.IndexDeltaLength = f.IndexDeltaLength
 					at.IndexLength = f.IndexLength
 					at.SizeLength = f.SizeLength
@@ -77,7 +76,7 @@ func (p *RTSPPublisher) SetTracks() error {
 			case *formats.G711:
 				at := p.AudioTrack
 				if at == nil {
-					at := NewG711(p.Stream, !f.MULaw, f.PayloadType(), uint32(f.ClockRate()), make(util.BytesPool, 17))
+					at := NewG711(p.Stream, !f.MULaw, f.PayloadType(), uint32(f.ClockRate()))
 					at.AVCCHead = []byte{(byte(at.CodecID) << 4) | (1 << 1)}
 					p.AudioTrack = at
 				}

@@ -7,11 +7,10 @@ require (
 	github.com/bluenviron/mediacommon v0.2.1
 	github.com/pion/rtp v1.7.13
 	go.uber.org/zap v1.23.0
-	m7s.live/engine/v4 v4.11.18
+	m7s.live/engine/v4 v4.12.5
 )
 
 require (
-	github.com/aler9/gortsplib v1.0.1 // indirect
 	github.com/aler9/gortsplib/v2 v2.2.2 // indirect
 	github.com/cnotch/ipchub v1.1.0 // indirect
 	github.com/denisbrodbeck/machineid v1.0.1 // indirect
