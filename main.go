@@ -74,14 +74,12 @@ var rtspConfig = &RTSPConfig{}
 var RTSPPlugin = InstallPlugin(rtspConfig)
 
 func filterStreams() (ss []*Stream) {
-	Streams.RLock()
-	defer Streams.RUnlock()
-	for _, s := range Streams.Map {
+	Streams.Range(func(key string, s *Stream) {
 		switch s.Publisher.(type) {
 		case *RTSPPublisher, *RTSPPuller:
 			ss = append(ss, s)
 		}
-	}
+	})
 	return
 }
 
