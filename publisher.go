@@ -77,7 +77,6 @@ func (p *RTSPPublisher) SetTracks() error {
 				at := p.AudioTrack
 				if at == nil {
 					at := NewG711(p.Stream, !f.MULaw, f.PayloadType(), uint32(f.ClockRate()))
-					at.AVCCHead = []byte{(byte(at.CodecID) << 4) | (1 << 1)}
 					p.AudioTrack = at
 				}
 				p.Tracks[track] = p.AudioTrack

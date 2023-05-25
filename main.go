@@ -43,7 +43,7 @@ func (conf *RTSPConfig) OnEvent(event any) {
 		}
 		if err := s.Start(); err != nil {
 			RTSPPlugin.Error("server start", zap.Error(err))
-			v["enable"] = false
+			RTSPPlugin.Disabled = true
 		}
 		for streamPath, url := range conf.PullOnStart {
 			if err := RTSPPlugin.Pull(streamPath, url, new(RTSPPuller), 0); err != nil {
@@ -51,20 +51,15 @@ func (conf *RTSPConfig) OnEvent(event any) {
 			}
 		}
 	case SEpublish:
-		for streamPath, url := range conf.PushList {
-			if streamPath == v.Target.Path {
-				if err := RTSPPlugin.Push(streamPath, url, new(RTSPPusher), false); err != nil {
-					RTSPPlugin.Error("push", zap.String("streamPath", streamPath), zap.String("url", url), zap.Error(err))
-				}
+		if url, ok := conf.PushList[v.Target.Path]; ok {
+			if err := RTSPPlugin.Push(v.Target.Path, url, new(RTSPPusher), false); err != nil {
+				RTSPPlugin.Error("push", zap.String("streamPath", v.Target.Path), zap.String("url", url), zap.Error(err))
 			}
 		}
 	case *Stream: //按需拉流
-		for streamPath, url := range conf.PullOnSub {
-			if streamPath == v.Path {
-				if err := RTSPPlugin.Pull(streamPath, url, new(RTSPPuller), 0); err != nil {
-					RTSPPlugin.Error("pull", zap.String("streamPath", streamPath), zap.String("url", url), zap.Error(err))
-				}
-				break
+		if url, ok := conf.PullOnSub[v.Path]; ok {
+			if err := RTSPPlugin.Pull(v.Path, url, new(RTSPPuller), 0); err != nil {
+				RTSPPlugin.Error("pull", zap.String("streamPath", v.Path), zap.String("url", url), zap.Error(err))
 			}
 		}
 	}
