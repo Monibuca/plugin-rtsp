@@ -21,7 +21,7 @@ func (p *RTSPPublisher) SetTracks() error {
 	p.Tracks = make(map[*media.Media]common.AVTrack, len(p.tracks))
 	defer func() {
 		for _, track := range p.Tracks {
-			p.Info("set track", zap.String("name", track.GetBase().Name))
+			p.Info("set track", zap.String("name", track.GetName()))
 		}
 	}()
 	for _, track := range p.tracks {
