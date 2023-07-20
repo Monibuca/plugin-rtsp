@@ -83,12 +83,26 @@ func (*RTSPConfig) API_list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (*RTSPConfig) API_Pull(rw http.ResponseWriter, r *http.Request) {
-	save, _ := strconv.Atoi(r.URL.Query().Get("save"))
-	err := RTSPPlugin.Pull(r.URL.Query().Get("streamPath"), r.URL.Query().Get("target"), new(RTSPPuller), save)
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusBadRequest)
-	} else {
-		rw.Write([]byte("ok"))
+	func (*RTSPConfig) API_Pull(rw http.ResponseWriter, r *http.Request) {
+		save, _ := strconv.Atoi(r.URL.Query().Get("save"))
+		// 截取原始请求参数，处理类似大华摄像头RTSP协议请求中【rtsp://user:passwd@ip:port/cam/realmonitor?channel=1&subtype=0】路径中存在&subtype，被误识别为参数，导致拉流失败的问题；
+		rawQuery := r.URL.RawQuery
+		start := strings.Index(rawQuery, "target=")
+		if start == -1 {
+			http.Error(rw, "Missing target parameter", http.StatusBadRequest)
+			return
+		}
+		end := strings.Index(rawQuery, "&streamPath=")
+		if end == -1 {
+			end = len(rawQuery)
+		}
+		target := rawQuery[start+len("target=") : end]
+		err := RTSPPlugin.Pull(r.URL.Query().Get("streamPath"), target, new(RTSPPuller), save)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusBadRequest)
+		} else {
+			rw.Write([]byte("ok"))
+		}
 	}
 }
 
