@@ -80,6 +80,23 @@ func (p *RTSPPublisher) SetTracks() error {
 					p.AudioTrack = at
 				}
 				p.Tracks[track] = p.AudioTrack
+			default:
+				rtpMap, _ := forma.Marshal()
+				rtpMap = strings.ToLower(rtpMap)
+				if strings.Contains(rtpMap, "pcm") {
+					isMulaw := false
+					if strings.Contains(rtpMap, "pcmu") {
+						isMulaw = true
+					}
+					at := p.AudioTrack
+					if at == nil {
+						at := NewG711(p.Stream, !isMulaw, f.PayloadType(), uint32(f.ClockRate()))
+						p.AudioTrack = at
+					}
+					p.Tracks[track] = p.AudioTrack
+				} else {
+					p.Error("unknown format", zap.Any("format", f.String()))
+				}				
 			}
 		}
 	}
