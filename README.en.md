@@ -52,7 +52,7 @@ rtsp:
     rtcpaddr: :8001
     readbuffercount: 2048
     writebuffercount: 2048
-    pullprotocol: 'auto' # auto, tcp, udp
+    pullprotocol: tcp # auto, tcp, udp
 ```
 :::tip Configuration override
 publish and subscribe, any section not configured will use global configuration.
@@ -65,6 +65,7 @@ Get all RTSP streams
 
 ### `rtsp/api/pull?target=[RTSP address]&streamPath=[Stream identity]&save=[0|1|2]`
 Pull the RTSP to m7s from a remote server
-save meaning: 0, do not save; 1, save to pullonstart; 2, save to pullonsub
+- save meaning: 0, do not save; 1, save to pullonstart; 2, save to pullonsub
+- The RTSP address needs to be urlencoded to prevent special characters from affecting parsing
 ### `rtsp/api/push?target=[RTSP address]&streamPath=[Stream identity]`
 Push local streams to remote servers

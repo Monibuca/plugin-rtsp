@@ -1,6 +1,8 @@
 package rtsp
 
 import (
+	"strings"
+
 	"github.com/bluenviron/gortsplib/v3/pkg/formats"
 	"github.com/bluenviron/gortsplib/v3/pkg/media"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
@@ -81,8 +83,7 @@ func (p *RTSPPublisher) SetTracks() error {
 				}
 				p.Tracks[track] = p.AudioTrack
 			default:
-				rtpMap, _ := forma.Marshal()
-				rtpMap = strings.ToLower(rtpMap)
+				rtpMap := strings.ToLower(forma.RTPMap())
 				if strings.Contains(rtpMap, "pcm") {
 					isMulaw := false
 					if strings.Contains(rtpMap, "pcmu") {
@@ -96,7 +97,7 @@ func (p *RTSPPublisher) SetTracks() error {
 					p.Tracks[track] = p.AudioTrack
 				} else {
 					p.Error("unknown format", zap.Any("format", f.String()))
-				}				
+				}
 			}
 		}
 	}
