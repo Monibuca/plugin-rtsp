@@ -63,8 +63,8 @@ publish and subscribe, any section not configured will use global configuration.
 ### `rtsp/api/list`
 Get all RTSP streams
 
-### `rtsp/api/pull?target=[RTSP address]&streamPath=[Stream identity]`
+### `rtsp/api/pull?target=[RTSP address]&streamPath=[Stream identity]&save=[0|1|2]`
 Pull the RTSP to m7s from a remote server
-
+save meaning: 0, do not save; 1, save to pullonstart; 2, save to pullonsub
 ### `rtsp/api/push?target=[RTSP address]&streamPath=[Stream identity]`
 Push local streams to remote servers

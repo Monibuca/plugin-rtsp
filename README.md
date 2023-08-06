@@ -61,8 +61,8 @@ subscribe
 ### `rtsp/api/list`
 获取所有rtsp流
 
-### `rtsp/api/pull?target=[RTSP地址]&streamPath=[流标识]&save=[0|1]`
+### `rtsp/api/pull?target=[RTSP地址]&streamPath=[流标识]&save=[0|1|2]`
 从远程拉取rtsp到m7s中
-
+save含义：0、不保存；1、保存到pullonstart；2、保存到pullonsub
 ### `rtsp/api/push?target=[RTSP地址]&streamPath=[流标识]`
 将本地的流推送到远端
