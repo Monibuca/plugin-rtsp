@@ -4,6 +4,7 @@ import (
 	"github.com/bluenviron/gortsplib/v3"
 	"github.com/bluenviron/gortsplib/v3/pkg/base"
 	"github.com/bluenviron/gortsplib/v3/pkg/media"
+	"go.uber.org/zap"
 	. "m7s.live/engine/v4"
 )
 
@@ -21,7 +22,7 @@ func (conf *RTSPConfig) OnConnOpen(ctx *gortsplib.ServerHandlerOnConnOpenCtx) {
 func (conf *RTSPConfig) OnConnClose(ctx *gortsplib.ServerHandlerOnConnCloseCtx) {
 	RTSPPlugin.Debug("conn closed")
 	if p, ok := conf.LoadAndDelete(ctx.Conn); ok {
-		p.(IIO).Stop()
+		p.(IIO).Stop(zap.String("conn", "closed"))
 	}
 }
 
@@ -40,6 +41,7 @@ func (conf *RTSPConfig) OnSessionClose(ctx *gortsplib.ServerHandlerOnSessionClos
 func (conf *RTSPConfig) OnDescribe(ctx *gortsplib.ServerHandlerOnDescribeCtx) (*base.Response, *gortsplib.ServerStream, error) {
 	RTSPPlugin.Debug("describe request")
 	var suber RTSPSubscriber
+	suber.RemoteAddr = ctx.Conn.NetConn().RemoteAddr().String()
 	suber.SetIO(ctx.Conn.NetConn())
 	streamPath := ctx.Path
 	if ctx.Query != "" {

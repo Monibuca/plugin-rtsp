@@ -23,7 +23,7 @@ type RTSPConfig struct {
 	RTCPAddr         string `default:":8001"`
 	ReadBufferCount  int    `default:"2048"`
 	WriteBufferCount int    `default:"2048"`
-	PullProtocol     string //tcp、udp、 auto（default）
+	PullProtocol     string `default:"tcp"` //tcp、udp、auto
 	sync.Map
 }
 
@@ -83,8 +83,9 @@ func (*RTSPConfig) API_list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (*RTSPConfig) API_Pull(rw http.ResponseWriter, r *http.Request) {
-	save, _ := strconv.Atoi(r.URL.Query().Get("save"))
-	err := RTSPPlugin.Pull(r.URL.Query().Get("streamPath"), r.URL.Query().Get("target"), new(RTSPPuller), save)
+	query := r.URL.Query()
+	save, _ := strconv.Atoi(query.Get("save"))
+	err := RTSPPlugin.Pull(query.Get("streamPath"), query.Get("target"), new(RTSPPuller), save)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 	} else {
@@ -93,7 +94,8 @@ func (*RTSPConfig) API_Pull(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (*RTSPConfig) API_Push(rw http.ResponseWriter, r *http.Request) {
-	err := RTSPPlugin.Push(r.URL.Query().Get("streamPath"), r.URL.Query().Get("target"), new(RTSPPusher), r.URL.Query().Has("save"))
+	query := r.URL.Query()
+	err := RTSPPlugin.Push(query.Get("streamPath"), query.Get("target"), new(RTSPPusher), query.Has("save"))
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 	} else {

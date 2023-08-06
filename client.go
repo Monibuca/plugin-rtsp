@@ -25,6 +25,7 @@ func (p *RTSPPuller) Connect() error {
 	p.Client = &gortsplib.Client{
 		DialContext:     p.DialContext,
 		ReadBufferCount: rtspConfig.ReadBufferCount,
+		AnyPortEnable: true,
 	}
 
 	switch rtspConfig.PullProtocol {
