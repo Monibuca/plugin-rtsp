@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
-	"time"
 
 	"github.com/bluenviron/gortsplib/v3"
 	"go.uber.org/zap"
@@ -56,10 +55,10 @@ func (conf *RTSPConfig) OnEvent(event any) {
 				RTSPPlugin.Error("push", zap.String("streamPath", v.Target.Path), zap.String("url", url), zap.Error(err))
 			}
 		}
-	case *Stream: //按需拉流
-		if url, ok := conf.PullOnSub[v.Path]; ok {
-			if err := RTSPPlugin.Pull(v.Path, url, new(RTSPPuller), 0); err != nil {
-				RTSPPlugin.Error("pull", zap.String("streamPath", v.Path), zap.String("url", url), zap.Error(err))
+	case InvitePublish: //按需拉流
+		if url, ok := conf.PullOnSub[v.Target]; ok {
+			if err := RTSPPlugin.Pull(v.Target, url, new(RTSPPuller), 0); err != nil {
+				RTSPPlugin.Error("pull", zap.String("streamPath", v.Target), zap.String("url", url), zap.Error(err))
 			}
 		}
 	}
@@ -79,7 +78,7 @@ func filterStreams() (ss []*Stream) {
 }
 
 func (*RTSPConfig) API_list(w http.ResponseWriter, r *http.Request) {
-	util.ReturnJson(filterStreams, time.Second, w, r)
+	util.ReturnFetchValue(filterStreams, w, r)
 }
 
 func (*RTSPConfig) API_Pull(rw http.ResponseWriter, r *http.Request) {
@@ -87,9 +86,9 @@ func (*RTSPConfig) API_Pull(rw http.ResponseWriter, r *http.Request) {
 	save, _ := strconv.Atoi(query.Get("save"))
 	err := RTSPPlugin.Pull(query.Get("streamPath"), query.Get("target"), new(RTSPPuller), save)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusBadRequest)
+		util.ReturnError(util.APIErrorQueryParse, err.Error(), rw, r)
 	} else {
-		rw.Write([]byte("ok"))
+		util.ReturnOK(rw, r)
 	}
 }
 
@@ -97,8 +96,8 @@ func (*RTSPConfig) API_Push(rw http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	err := RTSPPlugin.Push(query.Get("streamPath"), query.Get("target"), new(RTSPPusher), query.Has("save"))
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusBadRequest)
+		util.ReturnError(util.APIErrorQueryParse, err.Error(), rw, r)
 	} else {
-		rw.Write([]byte("ok"))
+		util.ReturnOK(rw, r)
 	}
 }

@@ -21,11 +21,17 @@ type RTSPPuller struct {
 	RTSPClient
 }
 
+func (p *RTSPClient) Disconnect() {
+	if p.Client != nil {
+		p.Client.Close()
+	}
+}
+
 func (p *RTSPPuller) Connect() error {
 	p.Client = &gortsplib.Client{
 		DialContext:     p.DialContext,
 		ReadBufferCount: rtspConfig.ReadBufferCount,
-		AnyPortEnable: true,
+		AnyPortEnable:   true,
 	}
 
 	switch rtspConfig.PullProtocol {
@@ -51,7 +57,6 @@ func (p *RTSPPuller) Connect() error {
 
 func (p *RTSPPuller) Pull() (err error) {
 	u, _ := url.Parse(p.RemoteURL)
-	defer p.Stop()
 	if _, err = p.Options(u); err != nil {
 		p.Error("Options", zap.Error(err))
 		return
@@ -97,6 +102,7 @@ func (p *RTSPPusher) OnEvent(event any) {
 		p.RTSPSubscriber.OnEvent(event)
 	}
 }
+
 func (p *RTSPPusher) Connect() error {
 	p.Client = &gortsplib.Client{
 		DialContext:      p.DialContext,
