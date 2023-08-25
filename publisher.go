@@ -96,7 +96,7 @@ func (p *RTSPPublisher) SetTracks() error {
 					}
 					p.Tracks[track] = p.AudioTrack
 				} else {
-					p.Warn("unknown format", zap.Any("format", f.Codec()))
+					p.Warn("unknown format", zap.Any("format", f.String()))
 				}
 			}
 		}
