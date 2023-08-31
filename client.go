@@ -28,7 +28,7 @@ func (p *RTSPClient) Disconnect() {
 }
 
 func (p *RTSPPuller) Connect() error {
-	p.Client = &gortsplib.Client{
+	client := &gortsplib.Client{
 		DialContext:     p.DialContext,
 		ReadBufferCount: rtspConfig.ReadBufferCount,
 		AnyPortEnable:   true,
@@ -37,10 +37,10 @@ func (p *RTSPPuller) Connect() error {
 	switch rtspConfig.PullProtocol {
 	case "tcp", "TCP":
 		p.Transport = gortsplib.TransportTCP
-		p.Client.Transport = &p.Transport
+		client.Transport = &p.Transport
 	case "udp", "UDP":
 		p.Transport = gortsplib.TransportUDP
-		p.Client.Transport = &p.Transport
+		client.Transport = &p.Transport
 	}
 	// parse URL
 	u, err := url.Parse(p.RemoteURL)
@@ -48,9 +48,10 @@ func (p *RTSPPuller) Connect() error {
 		return err
 	}
 	// connect to the server
-	if err = p.Client.Start(u.Scheme, u.Host); err != nil {
+	if err = client.Start(u.Scheme, u.Host); err != nil {
 		return err
 	}
+	p.Client = client
 	p.SetIO(p.Client)
 	return nil
 }
