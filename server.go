@@ -32,9 +32,7 @@ func (conf *RTSPConfig) OnSessionOpen(ctx *gortsplib.ServerHandlerOnSessionOpenC
 
 func (conf *RTSPConfig) OnSessionClose(ctx *gortsplib.ServerHandlerOnSessionCloseCtx) {
 	RTSPPlugin.Debug("session closed")
-	// if p, ok := conf.LoadAndDelete(ctx.Session); ok {
-	// 	p.(IIO).Stop()
-	// }
+	conf.Delete(ctx.Session)
 }
 
 // called after receiving a DESCRIBE request.
