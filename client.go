@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/bluenviron/gortsplib/v3"
+	"github.com/bluenviron/gortsplib/v3/pkg/base"
 	"github.com/bluenviron/gortsplib/v3/pkg/url"
 	"go.uber.org/zap"
 	"m7s.live/engine/v4"
@@ -33,15 +34,8 @@ func (p *RTSPPuller) Connect() error {
 		ReadBufferCount: rtspConfig.ReadBufferCount,
 		AnyPortEnable:   true,
 	}
-
-	switch rtspConfig.PullProtocol {
-	case "tcp", "TCP":
-		p.Transport = gortsplib.TransportTCP
-		client.Transport = &p.Transport
-	case "udp", "UDP":
-		p.Transport = gortsplib.TransportUDP
-		client.Transport = &p.Transport
-	}
+	p.Transport = gortsplib.TransportTCP
+	client.Transport = &p.Transport
 	// parse URL
 	u, err := url.Parse(p.RemoteURL)
 	if err != nil {
@@ -58,31 +52,35 @@ func (p *RTSPPuller) Connect() error {
 
 func (p *RTSPPuller) Pull() (err error) {
 	u, _ := url.Parse(p.RemoteURL)
-	if _, err = p.Options(u); err != nil {
+	var res *base.Response
+	if res, err = p.Options(u); err != nil {
 		p.Error("Options", zap.Error(err))
 		return
 	}
+	p.Debug("Options", zap.Any("res", res))
 	// find published tracks
-	tracks, baseURL, _, err := p.Describe(u)
+	tracks, baseURL, res, err := p.Describe(u)
 	if err != nil {
 		p.Error("Describe", zap.Error(err))
-		return
+		return err
 	}
+	p.Debug("Describe", zap.Any("res", res))
 	p.tracks = tracks
 	err = p.SetTracks()
 	if err != nil {
 		p.Error("SetTracks", zap.Error(err))
-		return
+		return err
 	}
 	if err = p.SetupAll(tracks, baseURL); err != nil {
 		p.Error("SetupAndPlay", zap.Error(err))
-		return
+		return err
 	}
 	p.OnPacketRTPAny(p.OnPacket)
-	_, err = p.Play(nil)
+	res, err = p.Play(nil)
+	p.Debug("Play", zap.Any("res", res))
 	if err != nil {
 		p.Error("Play", zap.Error(err))
-		return
+		return err
 	}
 	return p.Wait()
 }

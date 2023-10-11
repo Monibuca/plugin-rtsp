@@ -52,7 +52,6 @@ rtsp:
     rtcpaddr: :8001
     readbuffercount: 2048
     writebuffercount: 2048
-    pullprotocol: tcp # auto, tcp, udp
 ```
 :::tip Configuration override
 publish and subscribe, any section not configured will use global configuration.

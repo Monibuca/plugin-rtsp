@@ -22,7 +22,6 @@ type RTSPConfig struct {
 	RTCPAddr         string `default:":8001"`
 	ReadBufferCount  int    `default:"2048"`
 	WriteBufferCount int    `default:"2048"`
-	PullProtocol     string `default:"tcp"` //tcp、udp、auto
 	sync.Map
 }
 

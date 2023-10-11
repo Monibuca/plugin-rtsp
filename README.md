@@ -49,7 +49,6 @@ rtsp:
     rtcpaddr: :8001
     readbuffercount: 2048 # 读取缓存队列大小
     writebuffercount: 2048 # 写出缓存队列大小
-    pullprotocol: tcp # auto, tcp, udp
 ```
 :::tip 配置覆盖
 publish
