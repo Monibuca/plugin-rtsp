@@ -1,18 +1,20 @@
 package rtsp
 
 import (
-	"github.com/bluenviron/gortsplib/v3"
-	"github.com/bluenviron/gortsplib/v3/pkg/base"
-	"github.com/bluenviron/gortsplib/v3/pkg/media"
+	"github.com/bluenviron/gortsplib/v4"
+	"github.com/bluenviron/gortsplib/v4/pkg/base"
+	"github.com/bluenviron/gortsplib/v4/pkg/description"
 	"go.uber.org/zap"
 	. "m7s.live/engine/v4"
 )
 
 type RTSPIO struct {
-	tracks     media.Medias
+	server     *gortsplib.Server
+	session    *description.Session
+	tracks     []*description.Media
 	stream     *gortsplib.ServerStream
-	audioTrack *media.Media
-	videoTrack *media.Media
+	audioTrack *description.Media
+	videoTrack *description.Media
 }
 
 func (conf *RTSPConfig) OnConnOpen(ctx *gortsplib.ServerHandlerOnConnOpenCtx) {
@@ -39,6 +41,7 @@ func (conf *RTSPConfig) OnSessionClose(ctx *gortsplib.ServerHandlerOnSessionClos
 func (conf *RTSPConfig) OnDescribe(ctx *gortsplib.ServerHandlerOnDescribeCtx) (*base.Response, *gortsplib.ServerStream, error) {
 	RTSPPlugin.Debug("describe request")
 	var suber RTSPSubscriber
+	suber.server = conf.server
 	suber.RemoteAddr = ctx.Conn.NetConn().RemoteAddr().String()
 	suber.SetIO(ctx.Conn.NetConn())
 	streamPath := ctx.Path
@@ -100,8 +103,8 @@ func (conf *RTSPConfig) OnAnnounce(ctx *gortsplib.ServerHandlerOnAnnounceCtx) (*
 	p := &RTSPPublisher{}
 	p.SetIO(ctx.Conn.NetConn())
 	if err := RTSPPlugin.Publish(ctx.Path, p); err == nil {
-		p.tracks = ctx.Medias
-		p.stream = gortsplib.NewServerStream(ctx.Medias)
+		p.session = ctx.Description
+		p.stream = gortsplib.NewServerStream(conf.server, ctx.Description)
 		if err = p.SetTracks(); err != nil {
 			return nil, err
 		}

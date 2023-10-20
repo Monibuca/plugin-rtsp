@@ -1,10 +1,10 @@
 package rtsp
 
 import (
-	"github.com/bluenviron/gortsplib/v3"
+	"github.com/bluenviron/gortsplib/v4"
+	"github.com/bluenviron/gortsplib/v4/pkg/description"
+	"github.com/bluenviron/gortsplib/v4/pkg/format"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
-	"github.com/bluenviron/gortsplib/v3/pkg/formats"
-	"github.com/bluenviron/gortsplib/v3/pkg/media"
 	. "m7s.live/engine/v4"
 	"m7s.live/engine/v4/codec"
 	"m7s.live/engine/v4/track"
@@ -23,9 +23,9 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 		}
 		switch v.CodecID {
 		case codec.CodecID_H264:
-			video := &media.Media{
-				Type: media.TypeVideo,
-				Formats: []formats.Format{&formats.H264{
+			video := &description.Media{
+				Type: description.MediaTypeVideo,
+				Formats: []format.Format{&format.H264{
 					PacketizationMode: 1,
 					PayloadTyp:        v.PayloadType,
 					SPS:               v.ParamaterSets[0],
@@ -35,9 +35,9 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 			s.videoTrack = video
 			s.tracks = append(s.tracks, video)
 		case codec.CodecID_H265:
-			video := &media.Media{
-				Type: media.TypeVideo,
-				Formats: []formats.Format{&formats.H265{
+			video := &description.Media{
+				Type: description.MediaTypeVideo,
+				Formats: []format.Format{&format.H265{
 					PayloadTyp: v.PayloadType,
 					VPS:        v.ParamaterSets[0],
 					SPS:        v.ParamaterSets[1],
@@ -54,9 +54,9 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 		}
 		switch v.CodecID {
 		case codec.CodecID_AAC:
-			audio := &media.Media{
-				Type: media.TypeAudio,
-				Formats: []formats.Format{&formats.MPEG4Audio{
+			audio := &description.Media{
+				Type: description.MediaTypeAudio,
+				Formats: []format.Format{&format.MPEG4Audio{
 					PayloadTyp: v.PayloadType,
 					Config: &mpeg4audio.Config{
 						Type:         mpeg4audio.ObjectTypeAACLC,
@@ -71,16 +71,16 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 			s.audioTrack = audio
 			s.tracks = append(s.tracks, audio)
 		case codec.CodecID_PCMA:
-			audio := &media.Media{
-				Type:    media.TypeAudio,
-				Formats: []formats.Format{&formats.G711{}},
+			audio := &description.Media{
+				Type:    description.MediaTypeAudio,
+				Formats: []format.Format{&format.G711{}},
 			}
 			s.audioTrack = audio
 			s.tracks = append(s.tracks, audio)
 		case codec.CodecID_PCMU:
-			audio := &media.Media{
-				Type: media.TypeAudio,
-				Formats: []formats.Format{&formats.G711{
+			audio := &description.Media{
+				Type: description.MediaTypeAudio,
+				Formats: []format.Format{&format.G711{
 					MULaw: true,
 				}},
 			}
@@ -89,7 +89,12 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 		}
 		s.AddTrack(v)
 	case ISubscriber:
-		s.stream = gortsplib.NewServerStream(s.tracks)
+		s.session = &description.Session{
+			Medias:  s.tracks,
+		}
+		if s.server != nil {
+			s.stream = gortsplib.NewServerStream(s.server, s.session)
+		}
 	case VideoRTP:
 		s.stream.WritePacketRTP(s.videoTrack, v.Packet)
 	case AudioRTP:

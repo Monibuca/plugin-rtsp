@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/bluenviron/gortsplib/v3"
+	"github.com/bluenviron/gortsplib/v4"
 	"go.uber.org/zap"
 	. "m7s.live/engine/v4"
 	"m7s.live/engine/v4/config"
@@ -20,15 +20,15 @@ type RTSPConfig struct {
 	ListenAddr       string `default:":554"`
 	UDPAddr          string `default:":8000"`
 	RTCPAddr         string `default:":8001"`
-	ReadBufferCount  int    `default:"2048"`
 	WriteBufferCount int    `default:"2048"`
 	sync.Map
+	server *gortsplib.Server
 }
 
 func (conf *RTSPConfig) OnEvent(event any) {
 	switch v := event.(type) {
 	case FirstConfig:
-		s := &gortsplib.Server{
+		conf.server = &gortsplib.Server{
 			Handler:           conf,
 			RTSPAddress:       conf.ListenAddr,
 			UDPRTPAddress:     conf.UDPAddr,
@@ -36,10 +36,9 @@ func (conf *RTSPConfig) OnEvent(event any) {
 			MulticastIPRange:  "224.1.0.0/16",
 			MulticastRTPPort:  8002,
 			MulticastRTCPPort: 8003,
-			ReadBufferCount:   conf.ReadBufferCount,
-			WriteBufferCount:  conf.WriteBufferCount,
+			WriteQueueSize:    conf.WriteBufferCount,
 		}
-		if err := s.Start(); err != nil {
+		if err := conf.server.Start(); err != nil {
 			RTSPPlugin.Error("server start", zap.Error(err))
 			RTSPPlugin.Disabled = true
 		}
@@ -55,9 +54,9 @@ func (conf *RTSPConfig) OnEvent(event any) {
 			}
 		}
 	case InvitePublish: //按需拉流
-		if url, ok := conf.PullOnSub[v.Target]; ok {
-			if err := RTSPPlugin.Pull(v.Target, url, new(RTSPPuller), 0); err != nil {
-				RTSPPlugin.Error("pull", zap.String("streamPath", v.Target), zap.String("url", url), zap.Error(err))
+		if remoteURL := conf.CheckPullOnSub(v.Target); remoteURL != "" {
+			if err := RTSPPlugin.Pull(v.Target, remoteURL, new(RTSPPuller), 0); err != nil {
+				RTSPPlugin.Error("pull", zap.String("streamPath", v.Target), zap.String("url", remoteURL), zap.Error(err))
 			}
 		}
 	}

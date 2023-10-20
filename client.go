@@ -4,9 +4,9 @@ import (
 	"context"
 	"net"
 
-	"github.com/bluenviron/gortsplib/v3"
-	"github.com/bluenviron/gortsplib/v3/pkg/base"
-	"github.com/bluenviron/gortsplib/v3/pkg/url"
+	"github.com/bluenviron/gortsplib/v4"
+	"github.com/bluenviron/gortsplib/v4/pkg/base"
+	"github.com/bluenviron/gortsplib/v4/pkg/url"
 	"go.uber.org/zap"
 	"m7s.live/engine/v4"
 )
@@ -30,9 +30,9 @@ func (p *RTSPClient) Disconnect() {
 
 func (p *RTSPPuller) Connect() error {
 	client := &gortsplib.Client{
-		DialContext:     p.DialContext,
-		ReadBufferCount: rtspConfig.ReadBufferCount,
-		AnyPortEnable:   true,
+		DialContext: p.DialContext,
+
+		AnyPortEnable: true,
 	}
 	p.Transport = gortsplib.TransportTCP
 	client.Transport = &p.Transport
@@ -59,19 +59,19 @@ func (p *RTSPPuller) Pull() (err error) {
 	}
 	p.Debug("Options", zap.Any("res", res))
 	// find published tracks
-	tracks, baseURL, res, err := p.Describe(u)
+	session, res, err := p.Describe(u)
 	if err != nil {
 		p.Error("Describe", zap.Error(err))
 		return err
 	}
 	p.Debug("Describe", zap.Any("res", res))
-	p.tracks = tracks
+	p.session = session
 	err = p.SetTracks()
 	if err != nil {
 		p.Error("SetTracks", zap.Error(err))
 		return err
 	}
-	if err = p.SetupAll(tracks, baseURL); err != nil {
+	if err = p.SetupAll(session.BaseURL, session.Medias); err != nil {
 		p.Error("SetupAndPlay", zap.Error(err))
 		return err
 	}
@@ -104,8 +104,8 @@ func (p *RTSPPusher) OnEvent(event any) {
 
 func (p *RTSPPusher) Connect() error {
 	p.Client = &gortsplib.Client{
-		DialContext:      p.DialContext,
-		WriteBufferCount: rtspConfig.WriteBufferCount,
+		DialContext:    p.DialContext,
+		WriteQueueSize: rtspConfig.WriteBufferCount,
 	}
 	// parse URL
 	u, err := url.Parse(p.RemoteURL)
@@ -131,11 +131,11 @@ func (p *RTSPPusher) Push() (err error) {
 	// 		return fmt.Errorf("timeout")
 	// 	}
 	// }
-	if _, err = p.Announce(u, p.tracks); err != nil {
+	if _, err = p.Announce(u, p.session); err != nil {
 		p.Error("Announce", zap.Error(err))
 		return
 	}
-	err = p.SetupAll(p.tracks, u)
+	err = p.SetupAll(p.session.BaseURL, p.session.Medias)
 	if err != nil {
 		p.Error("Setup", zap.Error(err))
 		return

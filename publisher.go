@@ -3,8 +3,8 @@ package rtsp
 import (
 	"strings"
 
-	"github.com/bluenviron/gortsplib/v3/pkg/formats"
-	"github.com/bluenviron/gortsplib/v3/pkg/media"
+	"github.com/bluenviron/gortsplib/v4/pkg/description"
+	"github.com/bluenviron/gortsplib/v4/pkg/format"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 	"github.com/pion/rtp"
 	"go.uber.org/zap"
@@ -15,21 +15,21 @@ import (
 
 type RTSPPublisher struct {
 	Publisher
-	Tracks map[*media.Media]common.AVTrack `json:"-" yaml:"-"`
+	Tracks map[*description.Media]common.AVTrack `json:"-" yaml:"-"`
 	RTSPIO
 }
 
 func (p *RTSPPublisher) SetTracks() error {
-	p.Tracks = make(map[*media.Media]common.AVTrack, len(p.tracks))
+	p.Tracks = make(map[*description.Media]common.AVTrack, len(p.session.Medias))
 	defer func() {
 		for _, track := range p.Tracks {
 			p.Info("set track", zap.String("name", track.GetName()))
 		}
 	}()
-	for _, track := range p.tracks {
+	for _, track := range p.session.Medias {
 		for _, forma := range track.Formats {
 			switch f := forma.(type) {
-			case *formats.H264:
+			case *format.H264:
 				vt := p.VideoTrack
 				if vt == nil {
 					vt = NewH264(p.Stream, f.PayloadType())
@@ -42,7 +42,7 @@ func (p *RTSPPublisher) SetTracks() error {
 				if len(f.PPS) > 0 {
 					vt.WriteSliceBytes(f.PPS)
 				}
-			case *formats.H265:
+			case *format.H265:
 				vt := p.VideoTrack
 				if vt == nil {
 					vt = NewH265(p.Stream, f.PayloadType())
@@ -58,7 +58,7 @@ func (p *RTSPPublisher) SetTracks() error {
 				if len(f.PPS) > 0 {
 					vt.WriteSliceBytes(f.PPS)
 				}
-			case *formats.MPEG4Audio:
+			case *format.MPEG4Audio:
 				at := p.AudioTrack
 				if at == nil {
 					at := NewAAC(p.Stream, f.PayloadType(), uint32(f.Config.SampleRate))
@@ -75,7 +75,7 @@ func (p *RTSPPublisher) SetTracks() error {
 					p.AudioTrack = at
 				}
 				p.Tracks[track] = p.AudioTrack
-			case *formats.G711:
+			case *format.G711:
 				at := p.AudioTrack
 				if at == nil {
 					at := NewG711(p.Stream, !f.MULaw, f.PayloadType(), uint32(f.ClockRate()))
@@ -96,7 +96,7 @@ func (p *RTSPPublisher) SetTracks() error {
 					}
 					p.Tracks[track] = p.AudioTrack
 				} else {
-					p.Warn("unknown format", zap.Any("format", f.String()))
+					p.Warn("unknown format", zap.Any("format", f.FMTP()))
 				}
 			}
 		}
@@ -112,7 +112,7 @@ func (p *RTSPPublisher) SetTracks() error {
 	return nil
 }
 
-func (p *RTSPPublisher) OnPacket(m *media.Media, f formats.Format, pack *rtp.Packet) {
+func (p *RTSPPublisher) OnPacket(m *description.Media, f format.Format, pack *rtp.Packet) {
 	if t, ok := p.Tracks[m]; ok {
 		t.WriteRTPPack(pack)
 	}
