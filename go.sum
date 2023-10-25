@@ -1,9 +1,7 @@
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/benbjohnson/clock v1.1.0 h1:Q92kusRqC1XV2MjkWETPvjJVqKetz1OzxZB7mHJLju8=
-github.com/bluenviron/gortsplib/v4 v3.11.0 h1:oE8j9/2+T2JyttEO9SkJKskRerdMaW10zPoI0vEIlz4=
-github.com/bluenviron/gortsplib/v4 v3.11.0/go.mod h1:LZewC0KP6zhBceENKiSMNEryqGHljoIMq5W1SVS4vNs=
-github.com/bluenviron/gortsplib/v4 v4.2.1 h1:LugQr3TIKoj6GjOf470teDP8goWiL8PTrX2OaF+L2Vc=
-github.com/bluenviron/gortsplib/v4 v4.2.1/go.mod h1:VOoeI2VxRKh5eEg6Y48DGb/oLxU1i+X0Xzv9z8dvsUQ=
+github.com/bluenviron/gortsplib/v4 v4.2.2-0.20231023175953-d4bb674a5091 h1:VY+xh0y9kIrAqwuJHUOdS/ZdY2JPtNqzWtVN4QJr2Lo=
+github.com/bluenviron/gortsplib/v4 v4.2.2-0.20231023175953-d4bb674a5091/go.mod h1:VOoeI2VxRKh5eEg6Y48DGb/oLxU1i+X0Xzv9z8dvsUQ=
 github.com/bluenviron/mediacommon v1.5.0 h1:lS0YKNo22ZOyCsYcLh3jn3TgUALqYw0f7RVwalC09vI=
 github.com/bluenviron/mediacommon v1.5.0/go.mod h1:Ij/kE1LEucSjryNBVTyPL/gBI0d6/Css3f5PyrM957w=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=

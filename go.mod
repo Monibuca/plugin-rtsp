@@ -3,7 +3,7 @@ module m7s.live/plugin/rtsp/v4
 go 1.18
 
 require (
-  github.com/bluenviron/gortsplib/v4 v4.2.1
+	github.com/bluenviron/gortsplib/v4 v4.2.2-0.20231023175953-d4bb674a5091
 	github.com/bluenviron/mediacommon v1.5.0
 	github.com/pion/rtp v1.8.2
 	go.uber.org/zap v1.24.0

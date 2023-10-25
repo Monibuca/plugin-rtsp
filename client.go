@@ -22,6 +22,13 @@ type RTSPPuller struct {
 	RTSPClient
 }
 
+func (p *RTSPClient) Close() error {
+	if p.Client != nil {
+		p.Client.Close()
+	}
+	return nil
+}
+
 func (p *RTSPClient) Disconnect() {
 	if p.Client != nil {
 		p.Client.Close()
@@ -46,7 +53,7 @@ func (p *RTSPPuller) Connect() error {
 		return err
 	}
 	p.Client = client
-	p.SetIO(p.Client)
+	p.SetIO(p)
 	return nil
 }
 
@@ -118,10 +125,11 @@ func (p *RTSPPusher) Connect() error {
 		p.Error("Client.Start", zap.Error(err))
 		return err
 	}
-	p.SetIO(p.Client)
+	p.SetIO(p)
 	_, err = p.Client.Options(u)
 	return err
 }
+
 func (p *RTSPPusher) Push() (err error) {
 	var u *url.URL
 	u, err = url.Parse(p.RemoteURL)
@@ -135,7 +143,7 @@ func (p *RTSPPusher) Push() (err error) {
 		p.Error("Announce", zap.Error(err))
 		return
 	}
-	err = p.SetupAll(p.session.BaseURL, p.session.Medias)
+	err = p.SetupAll(u, p.session.Medias)
 	if err != nil {
 		p.Error("Setup", zap.Error(err))
 		return
