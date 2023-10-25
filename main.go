@@ -21,6 +21,7 @@ type RTSPConfig struct {
 	UDPAddr          string `default:":8000"`
 	RTCPAddr         string `default:":8001"`
 	WriteBufferCount int    `default:"2048"`
+	SendOptions      bool   `default:"true"`
 	sync.Map
 	server *gortsplib.Server
 }

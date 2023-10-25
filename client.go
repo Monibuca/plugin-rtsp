@@ -60,9 +60,11 @@ func (p *RTSPPuller) Connect() error {
 func (p *RTSPPuller) Pull() (err error) {
 	u, _ := url.Parse(p.RemoteURL)
 	var res *base.Response
-	if res, err = p.Options(u); err != nil {
-		p.Error("Options", zap.Error(err))
-		return
+	if rtspConfig.SendOptions {
+		if res, err = p.Options(u); err != nil {
+			p.Error("Options", zap.Error(err))
+			return
+		}
 	}
 	p.Debug("Options", zap.Any("res", res))
 	// find published tracks
@@ -126,7 +128,9 @@ func (p *RTSPPusher) Connect() error {
 		return err
 	}
 	p.SetIO(p)
-	_, err = p.Client.Options(u)
+	if rtspConfig.SendOptions {
+		_, err = p.Client.Options(u)
+	}
 	return err
 }
 
