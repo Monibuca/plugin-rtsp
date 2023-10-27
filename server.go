@@ -39,7 +39,7 @@ func (conf *RTSPConfig) OnSessionClose(ctx *gortsplib.ServerHandlerOnSessionClos
 
 // called after receiving a DESCRIBE request.
 func (conf *RTSPConfig) OnDescribe(ctx *gortsplib.ServerHandlerOnDescribeCtx) (*base.Response, *gortsplib.ServerStream, error) {
-	RTSPPlugin.Debug("describe request")
+	RTSPPlugin.Debug("describe request", zap.String("sdp", string(ctx.Request.Body)))
 	var suber RTSPSubscriber
 	suber.server = conf.server
 	suber.RemoteAddr = ctx.Conn.NetConn().RemoteAddr().String()
@@ -100,6 +100,7 @@ func (conf *RTSPConfig) OnRecord(ctx *gortsplib.ServerHandlerOnRecordCtx) (*base
 	}, nil
 }
 func (conf *RTSPConfig) OnAnnounce(ctx *gortsplib.ServerHandlerOnAnnounceCtx) (*base.Response, error) {
+	RTSPPlugin.Debug("annouce request", zap.String("sdp", string(ctx.Request.Body)))
 	p := &RTSPPublisher{}
 	p.SetIO(ctx.Conn.NetConn())
 	if err := RTSPPlugin.Publish(ctx.Path, p); err == nil {

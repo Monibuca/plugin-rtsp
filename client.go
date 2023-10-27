@@ -116,6 +116,8 @@ func (p *RTSPPusher) Connect() error {
 		DialContext:    p.DialContext,
 		WriteQueueSize: rtspConfig.WriteBufferCount,
 	}
+	p.Transport = gortsplib.TransportTCP
+	p.Client.Transport = &p.Transport
 	// parse URL
 	u, err := url.Parse(p.RemoteURL)
 	if err != nil {
@@ -143,9 +145,12 @@ func (p *RTSPPusher) Push() (err error) {
 	// 		return fmt.Errorf("timeout")
 	// 	}
 	// }
-	if _, err = p.Announce(u, p.session); err != nil {
+	var res *base.Response
+	if res, err = p.Announce(u, p.session); err != nil {
 		p.Error("Announce", zap.Error(err))
 		return
+	} else {
+		p.Debug("Announce", zap.Any("res", res))
 	}
 	err = p.SetupAll(u, p.session.Medias)
 	if err != nil {
@@ -153,9 +158,11 @@ func (p *RTSPPusher) Push() (err error) {
 		return
 	}
 
-	if _, err = p.Record(); err != nil {
+	if res, err = p.Record(); err != nil {
 		p.Error("Record", zap.Error(err))
 		return
+	} else {
+		p.Debug("Record", zap.Any("res", res))
 	}
 	p.PlayRTP()
 	return

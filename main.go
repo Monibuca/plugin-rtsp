@@ -49,9 +49,9 @@ func (conf *RTSPConfig) OnEvent(event any) {
 			}
 		}
 	case SEpublish:
-		if url, ok := conf.PushList[v.Target.Path]; ok {
-			if err := RTSPPlugin.Push(v.Target.Path, url, new(RTSPPusher), false); err != nil {
-				RTSPPlugin.Error("push", zap.String("streamPath", v.Target.Path), zap.String("url", url), zap.Error(err))
+		if remoteURL := conf.CheckPush(v.Target.Path); remoteURL != "" {
+			if err := RTSPPlugin.Push(v.Target.Path, remoteURL, new(RTSPPusher), false); err != nil {
+				RTSPPlugin.Error("push", zap.String("streamPath", v.Target.Path), zap.String("url", remoteURL), zap.Error(err))
 			}
 		}
 	case InvitePublish: //按需拉流
