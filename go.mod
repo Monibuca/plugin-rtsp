@@ -3,7 +3,7 @@ module m7s.live/plugin/rtsp/v4
 go 1.18
 
 require (
-	github.com/bluenviron/gortsplib/v4 v4.2.2-0.20231023175953-d4bb674a5091
+	github.com/bluenviron/gortsplib/v4 v4.3.0
 	github.com/bluenviron/mediacommon v1.5.0
 	github.com/pion/rtp v1.8.2
 	go.uber.org/zap v1.24.0
@@ -17,7 +17,7 @@ require (
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38 // indirect
-	github.com/google/uuid v1.3.1 // indirect
+	github.com/google/uuid v1.4.0 // indirect
 	github.com/logrusorgru/aurora/v4 v4.0.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20230326075908-cb1d2100619a // indirect
 	github.com/mcuadros/go-defaults v1.2.0 // indirect

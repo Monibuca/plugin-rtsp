@@ -1,6 +1,8 @@
 package rtsp
 
 import (
+	"fmt"
+
 	"github.com/bluenviron/gortsplib/v4"
 	"github.com/bluenviron/gortsplib/v4/pkg/description"
 	"github.com/bluenviron/gortsplib/v4/pkg/format"
@@ -72,16 +74,22 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 			s.tracks = append(s.tracks, audio)
 		case codec.CodecID_PCMA:
 			audio := &description.Media{
-				Type:    description.MediaTypeAudio,
-				Formats: []format.Format{&format.G711{}},
+				Type: description.MediaTypeAudio,
+				Formats: []format.Format{&format.Generic{
+					PayloadTyp: v.PayloadType,
+					ClockRat:   int(v.SampleRate),
+					RTPMa:      fmt.Sprintf("PCMA/%d", v.SampleRate),
+				}},
 			}
 			s.audioTrack = audio
 			s.tracks = append(s.tracks, audio)
 		case codec.CodecID_PCMU:
 			audio := &description.Media{
 				Type: description.MediaTypeAudio,
-				Formats: []format.Format{&format.G711{
-					MULaw: true,
+				Formats: []format.Format{&format.Generic{
+					PayloadTyp: v.PayloadType,
+					ClockRat:   int(v.SampleRate),
+					RTPMa:      fmt.Sprintf("PCMU/%d", v.SampleRate),
 				}},
 			}
 			s.audioTrack = audio
@@ -90,7 +98,7 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 		s.AddTrack(v)
 	case ISubscriber:
 		s.session = &description.Session{
-			Medias:  s.tracks,
+			Medias: s.tracks,
 		}
 		if s.server != nil {
 			s.stream = gortsplib.NewServerStream(s.server, s.session)
