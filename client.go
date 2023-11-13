@@ -91,8 +91,7 @@ func (p *RTSPPuller) Pull() (err error) {
 		p.Error("Play", zap.Error(err))
 		return err
 	}
-	<-p.Done()
-	return p.Err()
+	return p.Wait()
 }
 
 type RTSPPusher struct {
