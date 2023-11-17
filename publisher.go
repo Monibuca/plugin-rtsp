@@ -57,7 +57,14 @@ func (p *RTSPPublisher) SetTracks() error {
 				}
 				if len(f.PPS) > 0 {
 					vt.WriteSliceBytes(f.PPS)
+				} 
+			case *format.AV1:
+				vt := p.VideoTrack
+				if vt == nil {
+					vt = NewAV1(p.Stream, f.PayloadType())
+					p.VideoTrack = vt
 				}
+				p.Tracks[track] = p.VideoTrack
 			case *format.MPEG4Audio:
 				at := p.AudioTrack
 				if at == nil {
@@ -82,6 +89,12 @@ func (p *RTSPPublisher) SetTracks() error {
 					p.AudioTrack = at
 				}
 				p.Tracks[track] = p.AudioTrack
+			case *format.Opus:
+				at := p.AudioTrack
+				if at == nil {
+					at := NewOpus(p.Stream, f.PayloadType(), uint32(f.ClockRate()))
+					p.AudioTrack = at
+				}
 			default:
 				rtpMap := strings.ToLower(forma.RTPMap())
 				if strings.Contains(rtpMap, "pcm") {

@@ -25,7 +25,7 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 		}
 		switch v.CodecID {
 		case codec.CodecID_H264:
-			video := &description.Media{
+			s.videoTrack = &description.Media{
 				Type: description.MediaTypeVideo,
 				Formats: []format.Format{&format.H264{
 					PacketizationMode: 1,
@@ -34,10 +34,8 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 					PPS:               v.ParamaterSets[1],
 				}},
 			}
-			s.videoTrack = video
-			s.tracks = append(s.tracks, video)
 		case codec.CodecID_H265:
-			video := &description.Media{
+			s.videoTrack = &description.Media{
 				Type: description.MediaTypeVideo,
 				Formats: []format.Format{&format.H265{
 					PayloadTyp: v.PayloadType,
@@ -46,17 +44,32 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 					PPS:        v.ParamaterSets[2],
 				}},
 			}
-			s.videoTrack = video
-			s.tracks = append(s.tracks, video)
+		case codec.CodecID_AV1:
+			var idx, profile, tail int
+			idx = int(v.ParamaterSets[1][0])
+			profile = int(v.ParamaterSets[1][1])
+			tail = int(v.ParamaterSets[1][2])
+			s.videoTrack = &description.Media{
+				Type: description.MediaTypeVideo,
+				Formats: []format.Format{&format.AV1{
+					PayloadTyp: v.PayloadType,
+					LevelIdx:   &idx,
+					Profile:    &profile,
+					Tier:       &tail,
+				}},
+			}
 		}
-		s.AddTrack(v)
+		if s.videoTrack != nil {
+			s.tracks = append(s.tracks, s.videoTrack)
+			s.AddTrack(v)
+		}
 	case *track.Audio:
 		if s.Audio != nil {
 			return
 		}
 		switch v.CodecID {
 		case codec.CodecID_AAC:
-			audio := &description.Media{
+			s.audioTrack = &description.Media{
 				Type: description.MediaTypeAudio,
 				Formats: []format.Format{&format.MPEG4Audio{
 					PayloadTyp: v.PayloadType,
@@ -70,10 +83,8 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 					IndexDeltaLength: v.IndexDeltaLength,
 				}},
 			}
-			s.audioTrack = audio
-			s.tracks = append(s.tracks, audio)
 		case codec.CodecID_PCMA:
-			audio := &description.Media{
+			s.audioTrack = &description.Media{
 				Type: description.MediaTypeAudio,
 				Formats: []format.Format{&format.Generic{
 					PayloadTyp: v.PayloadType,
@@ -81,10 +92,8 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 					RTPMa:      fmt.Sprintf("PCMA/%d", v.SampleRate),
 				}},
 			}
-			s.audioTrack = audio
-			s.tracks = append(s.tracks, audio)
 		case codec.CodecID_PCMU:
-			audio := &description.Media{
+			s.audioTrack = &description.Media{
 				Type: description.MediaTypeAudio,
 				Formats: []format.Format{&format.Generic{
 					PayloadTyp: v.PayloadType,
@@ -92,10 +101,18 @@ func (s *RTSPSubscriber) OnEvent(event any) {
 					RTPMa:      fmt.Sprintf("PCMU/%d", v.SampleRate),
 				}},
 			}
-			s.audioTrack = audio
-			s.tracks = append(s.tracks, audio)
+		case codec.CodecID_OPUS:
+			s.audioTrack = &description.Media{
+				Type: description.MediaTypeAudio,
+				Formats: []format.Format{&format.Opus{
+					PayloadTyp: v.PayloadType,
+				}},
+			}
 		}
-		s.AddTrack(v)
+		if s.audioTrack != nil {
+			s.tracks = append(s.tracks, s.audioTrack)
+			s.AddTrack(v)
+		}
 	case ISubscriber:
 		s.session = &description.Session{
 			Medias: s.tracks,

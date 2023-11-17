@@ -7,7 +7,7 @@ require (
 	github.com/bluenviron/mediacommon v1.5.0
 	github.com/pion/rtp v1.8.2
 	go.uber.org/zap v1.24.0
-	m7s.live/engine/v4 v4.13.12
+	m7s.live/engine/v4 v4.14.3
 )
 
 require (
@@ -26,6 +26,7 @@ require (
 	github.com/pion/rtcp v1.2.10 // indirect
 	github.com/pion/sdp/v3 v3.0.6 // indirect
 	github.com/pion/webrtc/v3 v3.2.14 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
 	github.com/q191201771/naza v0.30.11 // indirect
 	github.com/quic-go/qtls-go1-20 v0.3.1 // indirect
