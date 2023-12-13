@@ -17,11 +17,11 @@ type RTSPConfig struct {
 	config.Subscribe
 	config.Pull
 	config.Push
-	ListenAddr       string `default:":554"`
-	UDPAddr          string `default:":8000"`
-	RTCPAddr         string `default:":8001"`
-	WriteBufferCount int    `default:"2048"`
-	SendOptions      bool   `default:"true"`
+	ListenAddr       string `default:":554" desc:"rtsp监听地址"`
+	UDPAddr          string `default:":8000" desc:"udp rtp监听地址"`
+	RTCPAddr         string `default:":8001" desc:"udp rtcp监听地址"`
+	WriteBufferCount int    `default:"2048" desc:"rtsp写缓冲区大小"`
+	SendOptions      bool   `default:"true" desc:"是否发送options请求"`
 	sync.Map
 	server *gortsplib.Server
 }
