@@ -5,7 +5,7 @@ import (
 	"github.com/bluenviron/gortsplib/v4/pkg/base"
 	"github.com/bluenviron/gortsplib/v4/pkg/description"
 	"go.uber.org/zap"
-	. "m7s.live/engine/v4"
+	"m7s.live/engine/v4/common"
 )
 
 type RTSPIO struct {
@@ -24,7 +24,7 @@ func (conf *RTSPConfig) OnConnOpen(ctx *gortsplib.ServerHandlerOnConnOpenCtx) {
 func (conf *RTSPConfig) OnConnClose(ctx *gortsplib.ServerHandlerOnConnCloseCtx) {
 	RTSPPlugin.Debug("conn closed")
 	if p, ok := conf.LoadAndDelete(ctx.Conn); ok {
-		p.(IIO).Stop(zap.String("conn", "closed"))
+		p.(common.IIO).Stop(zap.String("conn", "closed"))
 	}
 }
 

@@ -9,8 +9,10 @@ import (
 	"github.com/pion/rtp"
 	"go.uber.org/zap"
 	. "m7s.live/engine/v4"
+	"m7s.live/engine/v4/codec"
 	"m7s.live/engine/v4/common"
 	. "m7s.live/engine/v4/track"
+	"m7s.live/engine/v4/util"
 )
 
 type RTSPPublisher struct {
@@ -32,10 +34,9 @@ func (p *RTSPPublisher) SetTracks() error {
 			case *format.H264:
 				vt := p.VideoTrack
 				if vt == nil {
-					vt = NewH264(p.Stream, f.PayloadType())
-					p.VideoTrack = vt
+					vt = p.CreateVideoTrack(codec.CodecID_H264, byte(f.PayloadType()))
 				}
-				p.Tracks[track] = p.VideoTrack
+				p.Tracks[track] = vt
 				if len(f.SPS) > 0 {
 					vt.WriteSliceBytes(f.SPS)
 				}
@@ -45,10 +46,9 @@ func (p *RTSPPublisher) SetTracks() error {
 			case *format.H265:
 				vt := p.VideoTrack
 				if vt == nil {
-					vt = NewH265(p.Stream, f.PayloadType())
-					p.VideoTrack = vt
+					vt = p.CreateVideoTrack(codec.CodecID_H265, byte(f.PayloadType()))
 				}
-				p.Tracks[track] = p.VideoTrack
+				p.Tracks[track] = vt
 				if len(f.VPS) > 0 {
 					vt.WriteSliceBytes(f.VPS)
 				}
@@ -57,18 +57,17 @@ func (p *RTSPPublisher) SetTracks() error {
 				}
 				if len(f.PPS) > 0 {
 					vt.WriteSliceBytes(f.PPS)
-				} 
+				}
 			case *format.AV1:
 				vt := p.VideoTrack
 				if vt == nil {
-					vt = NewAV1(p.Stream, f.PayloadType())
-					p.VideoTrack = vt
+					vt = p.CreateVideoTrack(codec.CodecID_AV1, byte(f.PayloadType()))
 				}
-				p.Tracks[track] = p.VideoTrack
+				p.Tracks[track] = vt
 			case *format.MPEG4Audio:
 				at := p.AudioTrack
 				if at == nil {
-					at := NewAAC(p.Stream, f.PayloadType(), uint32(f.Config.SampleRate))
+					at := p.CreateAudioTrack(codec.CodecID_AAC, byte(f.PayloadType()), uint32(f.Config.SampleRate)).(*AAC)
 					at.IndexDeltaLength = f.IndexDeltaLength
 					at.IndexLength = f.IndexLength
 					at.SizeLength = f.SizeLength
@@ -79,22 +78,20 @@ func (p *RTSPPublisher) SetTracks() error {
 					asc, _ := f.Config.Marshal()
 					// 复用AVCC写入逻辑，解析出AAC的配置信息
 					at.WriteSequenceHead(append([]byte{0xAF, 0x00}, asc...))
-					p.AudioTrack = at
 				}
 				p.Tracks[track] = p.AudioTrack
 			case *format.G711:
 				at := p.AudioTrack
 				if at == nil {
-					at := NewG711(p.Stream, !f.MULaw, f.PayloadType(), uint32(f.ClockRate()))
-					p.AudioTrack = at
+					at = p.CreateAudioTrack(util.Conditoinal(f.MULaw, codec.CodecID_PCMU, codec.CodecID_PCMA), byte(f.PayloadType()), uint32(f.ClockRate()))
 				}
-				p.Tracks[track] = p.AudioTrack
+				p.Tracks[track] = at
 			case *format.Opus:
 				at := p.AudioTrack
 				if at == nil {
-					at := NewOpus(p.Stream, f.PayloadType(), uint32(f.ClockRate()))
-					p.AudioTrack = at
+					p.CreateAudioTrack(codec.CodecID_OPUS, byte(f.PayloadType()), uint32(f.ClockRate()))
 				}
+				p.Tracks[track] = at
 			default:
 				rtpMap := strings.ToLower(forma.RTPMap())
 				if strings.Contains(rtpMap, "pcm") {
@@ -104,10 +101,9 @@ func (p *RTSPPublisher) SetTracks() error {
 					}
 					at := p.AudioTrack
 					if at == nil {
-						at := NewG711(p.Stream, !isMulaw, f.PayloadType(), uint32(f.ClockRate()))
-						p.AudioTrack = at
+						at = p.CreateAudioTrack(util.Conditoinal(isMulaw, codec.CodecID_PCMU, codec.CodecID_PCMA), byte(f.PayloadType()), uint32(f.ClockRate()))
 					}
-					p.Tracks[track] = p.AudioTrack
+					p.Tracks[track] = at
 				} else {
 					p.Warn("unknown format", zap.Any("format", f.FMTP()))
 				}
