@@ -100,3 +100,19 @@ func (*RTSPConfig) API_Push(rw http.ResponseWriter, r *http.Request) {
 		util.ReturnOK(rw, r)
 	}
 }
+
+func (*RTSPConfig) API_close(rw http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	streamPath := query.Get("streamPath")
+	if streamPath == "" {
+		util.ReturnError(util.APIErrorQueryParse, "streamPath is empty", rw, r)
+		return
+	}
+	stream := Streams.Get(streamPath)
+	if stream == nil {
+		util.ReturnError(util.APIErrorNotFound, "streamPath not found", rw, r)
+		return
+	}
+	stream.Close()
+	util.ReturnOK(rw, r)
+}
