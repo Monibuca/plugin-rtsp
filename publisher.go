@@ -95,7 +95,7 @@ func (p *RTSPPublisher) SetTracks() error {
 			case *format.Opus:
 				at := p.AudioTrack
 				if at == nil {
-					p.CreateAudioTrack(codec.CodecID_OPUS, byte(f.PayloadType()), uint32(f.ClockRate()))
+					at = p.CreateAudioTrack(codec.CodecID_OPUS, byte(f.PayloadType()), uint32(f.ClockRate()))
 				}
 				p.Tracks[track] = at
 			default:
